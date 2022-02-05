@@ -1,3 +1,6 @@
 [submodule "glfw"]
-	path = libs/glfw
+	path = src/libs/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "src/libs/Vulkan-Headers"]
+	path = src/libs/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git

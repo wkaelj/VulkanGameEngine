@@ -1,6 +1,8 @@
 // temp main function
 #include <stdio.h>
 #include <stdlib.h>
+#include "render/setup/initvk.h"
+#include "debug/debug.h"
 
 int mainLoopTest (void);
 

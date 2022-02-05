@@ -1,7 +1,8 @@
 // initvk implementation file
 
 #include "initvk.h"
-#include "../utilities/utilities.h"
+#include "../../utilities/utilities.h"
+#include <GLFW/glfw3.h>
 
 //
 // Magic Number Definitions

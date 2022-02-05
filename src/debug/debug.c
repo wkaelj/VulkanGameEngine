@@ -1,10 +1,8 @@
-#include "../dependencies.h"
 #include "debug.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
-
-size_t sizeofStringFormatChar (char format);
 
 int debug_log (const char *format, ...) {
 
@@ -28,18 +26,4 @@ int debug_log (const char *format, ...) {
     printf ("%s\n", bufferString);
     va_end (args);
     return EXIT_SUCCESS;
-}
-
-size_t sizeofStringFormatChar (char format) {
-    size_t out;
-
-    switch(format) {
-        case 'c': return sizeof (char);
-        case 's': return sizeof (char *);
-        case 'i': return sizeof (int);
-        case 'h': return sizeof (short);
-        case 'l': return sizeof (long);
-        case 'p': return sizeof (void *);
-    };
-    return 0;
 }

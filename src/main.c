@@ -1,8 +1,4 @@
 // temp main function
-
-#include "dependencies.h"
-#include "setup/initvk.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 

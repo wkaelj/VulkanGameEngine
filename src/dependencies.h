@@ -1,7 +1,7 @@
 #ifndef DEPENDENCIES_H_ // header guard
 #define DEPENDENCIES_H_
 
-//Cmake stuffs
+//CMake stuffs
 #define SimpleVulkanEngine_VERSION_MAJOR @Tutorial_VERSION_MAJOR@
 #define SimpleVulkanEngine_VERSION_MINOR @Tutorial_VERSION_MINOR@
 

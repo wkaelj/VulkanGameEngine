@@ -1,8 +1,11 @@
 // initvk implementation file
 
 #include "initvk.h"
-#include "../../utilities/utilities.h"
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <stdlib.h>
+#include <string.h>
+#include "../../debug/debug.h"
 
 //
 // Magic Number Definitions
@@ -61,6 +64,23 @@ typedef struct {
 const char *requiredLayerNames[] = {"VK_LAYER_KHRONOS_validation"}; // requred validation layers
 const char *requiredDeviceExtensionNames[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME}; // required GPU extensions
 bool enableValidationLayers = true; // if the program should enable extra debug functionality (yes by default)
+
+//
+// Definition definitions
+//
+
+// inline functions to clamp a value
+inline int64_t clampValue(uint32_t min, uint32_t max, uint32_t val) {
+    if (val < max && val > min) {
+        return val;
+    } else if (val < min) {
+        return min;
+    } else if (val > max) {
+        return max;
+    }
+}
+
+#define arrayLength(x) (sizeof (x) / sizeof (x[0]))
 
 //
 // Private Function Declerations
@@ -276,7 +296,7 @@ int createInstance (void) {
 
     // validation layers
     if (enableValidationLayers) {
-        createInfo.enabledLayerCount = ARRAY_LENGTH (requiredLayerNames);
+        createInfo.enabledLayerCount = arrayLength (requiredLayerNames);
         createInfo.ppEnabledLayerNames = requiredLayerNames;
     } else {
         createInfo.enabledLayerCount = 0;
@@ -308,7 +328,7 @@ int setupValidation (void) {
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers);
 
     // check if required extensions are available
-    for (uint32_t i = 0; i < ARRAY_LENGTH (requiredLayerNames); i++) {
+    for (uint32_t i = 0; i < arrayLength (requiredLayerNames); i++) {
         bool found = false;
 
         //iterate through available extensions
@@ -428,11 +448,11 @@ int createLogicalDevice (void) {
     createInfo.pEnabledFeatures = &deviceFeatures;
 
     // enable device extensions
-    createInfo.enabledExtensionCount = ARRAY_LENGTH (requiredDeviceExtensionNames);
+    createInfo.enabledExtensionCount = arrayLength (requiredDeviceExtensionNames);
     createInfo.ppEnabledExtensionNames = requiredDeviceExtensionNames;
 
     // pass used enabled validation layers
-    createInfo.enabledLayerCount = ARRAY_LENGTH(requiredLayerNames);
+    createInfo.enabledLayerCount = arrayLength(requiredLayerNames);
     createInfo.ppEnabledLayerNames = requiredLayerNames;
 
     if (vkCreateDevice (physicalDevice, &createInfo, NULL, &device) != VK_SUCCESS) {
@@ -523,7 +543,7 @@ int checkDeviceExtensionSupport (VkPhysicalDevice questionedDevice) {
     VkExtensionProperties availableExtensionNames[availailableExtensionCount];
     vkEnumerateDeviceExtensionProperties (questionedDevice, NULL, &availailableExtensionCount, availableExtensionNames);
     // highly efficient iterator (two means twice the speed)
-    for (uint32_t i = 0; i < ARRAY_LENGTH(requiredDeviceExtensionNames); i++) {
+    for (uint32_t i = 0; i < arrayLength(requiredDeviceExtensionNames); i++) {
         bool found = false; // if the current extension has been found
         for (uint32_t x = 0; x < availailableExtensionCount; x++) {
             if (strcmp (requiredDeviceExtensionNames[i], availableExtensionNames[i].extensionName) != 0) {

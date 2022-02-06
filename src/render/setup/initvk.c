@@ -19,9 +19,7 @@
 //
 
 VkInstance instance; // vulkan instance
-VkPhysicalDevice physicalDevice; // vulkan rif (capabilities->currentExtent.width != UINT32_MAX) {
-    //     return capabilities->currentExtent;
-    // }endering device
+VkPhysicalDevice physicalDevice; // vulkan rendering device
 VkDevice device; // logical vulkan device
 VkQueue graphicsQueue; // vulkan graphics queue
 VkQueue presentQueue; // vulkan presentation queue
@@ -29,6 +27,12 @@ GLFWwindow *window; // glfw window
 VkSurfaceKHR windowSurface; // vulkan window surface
 VkDebugUtilsMessengerEXT debugMessenger; // vulkan debug messenger
 bool preferIntegratedGPU; // wether to prefer a integrated GPU over a discrete GPU
+
+// swapchain variables
+VkSwapchainKHR swapchain; // window swapchain
+VkImage swapchainImages[0]; // swapchain images, gets resized in createSwapchain()
+VkFormat swapchainImageFormat;
+VkExtent2D swapchainImageExtent;
 
 //
 // Struct definitions & implementations
@@ -57,7 +61,9 @@ typedef struct {
 typedef struct {
     VkSurfaceCapabilitiesKHR capabilties;
     VkSurfaceFormatKHR *formats; // maybe need to fix pointers later
+    uint32_t formatCount;
     VkPresentModeKHR *presentModes;
+    uint32_t presentModeCount;
 } SwapChainSupportDetails;
 
 // required validation layers (wanna put in config file)
@@ -105,7 +111,9 @@ QueueFamilyIndices findDeviceQueue (VkPhysicalDevice questionedDevice);
 // create VkDevice and all the VkQueues
 int createLogicalDevice (void);
 // function to create a swapchain
-int createSwapChain (void);
+int createSwapchain (void);
+// function to create the image views
+int createImageViews (void);
 // check if questionedDevice supports the swapchain
 SwapChainSupportDetails querySwapChainSupport (VkPhysicalDevice questionedDevice);
 // choose desired or best swap chain mode
@@ -113,7 +121,7 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat (uint32_t formatCount, const VkSurfac
 // choose best or desired surface format
 VkPresentModeKHR chooseSwapPresentMode (uint32_t presentModesCount, const VkPresentModeKHR *availablePresentModes);
 // find screen resolution for swap
-VkExtent2D chooseSwapExtent (const VkSurfaceCapabilitiesKHR *capabilities);
+VkExtent2D chooseSwapExtent (VkSurfaceCapabilitiesKHR *capabilities);
 // function loaders (broken)
 VkResult CreateDebugUtilsMessengerEXT (VkInstance instance,
     const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
@@ -185,6 +193,8 @@ int initvk_cleanVulkan (void) {
         DestroyDebugUtilsMessengerEXT  (instance, &debugMessenger, NULL);
     }
 
+    vkDestroySwapchainKHR (device, swapchain, NULL);
+
     vkDestroySurfaceKHR (instance, windowSurface, NULL);
 
     vkDestroyDevice (device, NULL);
@@ -243,9 +253,8 @@ int createInstance (void) {
     VkInstanceCreateInfo createInfo = {};
     createInfo.pApplicationInfo = &appInfo;
 
-    // extensions
+    // get glfw extensinos
     uint32_t glfwExtensionCount = 0;
-    glfwGetRequiredInstanceExtensions (&glfwExtensionCount);
     const char **glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
@@ -257,9 +266,10 @@ int createInstance (void) {
         requiredExtensionCount = glfwExtensionCount + 1;
         requiredExtensions = malloc (sizeof (char *) * (requiredExtensionCount)); // allocate enough memory to fit glfwExtensionCount and 1 extra
         // set extensions to glfwExtensions
-        for (uint32_t i = 0; i < glfwExtensionCount; i++) {
-            requiredExtensions[i] = glfwExtensions[i];
-        }
+        // for (uint32_t i = 0; i < glfwExtensionCount; i++) {
+        //     requiredExtensions[i] = glfwExtensions[i];
+        // }
+        memcpy (requiredExtensions, glfwExtensions, sizeof (char *) * glfwExtensionCount);
         requiredExtensions[requiredExtensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
     } else {
         requiredExtensionCount = glfwExtensionCount;
@@ -423,20 +433,16 @@ int createLogicalDevice (void) {
     // create queues
     float queuePriority = 1.0f; // float pointer for later
     uint32_t queueCount = QUEUE_COUNT; // queue count
-    uint32_t queueFamilies[] = {QUEUE_NAMES}; // queue indices
+    uint32_t queueFamilies[QUEUE_COUNT] = {QUEUE_NAMES}; // queue indices
     VkDeviceQueueCreateInfo queueCreateInfos[queueCount]; // queue create infos
 
     for (uint32_t i = 0; i < queueCount; i++) {
-
-        debug_log ("Iteration: %i", i);
         VkDeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queueFamilies[i];
         queueCreateInfo.queueCount = 1;
         queueCreateInfo.pQueuePriorities = &queuePriority;
-        queueCreateInfos[i] = queueCreateInfo;
     }
-
 
     VkPhysicalDeviceFeatures deviceFeatures = {}; // populate later
 
@@ -466,12 +472,81 @@ int createLogicalDevice (void) {
     return EXIT_SUCCESS;
 }
 
-//
-int createSwapChain (void) {
+// create swapchain
+int createSwapchain (void) {
+
+    SwapChainSupportDetails swapDetails = querySwapChainSupport(physicalDevice);
+
+    // choose surface format, present and extent
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat (swapDetails.formatCount, swapDetails.formats);
+    VkPresentModeKHR surfacePresentMode = chooseSwapPresentMode (swapDetails.presentModeCount, swapDetails.presentModes);
+    VkExtent2D surfaceExtent = chooseSwapExtent (&swapDetails.capabilties);
+
+    // pick image count
+    uint32_t imageCount = swapDetails.capabilties.minImageCount + 1;
+    // define pointer to make code more readable
+    const uint32_t *maxImageCount = &swapDetails.capabilties.maxImageCount;
+    if (*maxImageCount > 0 && imageCount > *maxImageCount) {
+        imageCount = *maxImageCount;
+    }
+
+    // create info
+    VkSwapchainCreateInfoKHR createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+
+    createInfo.surface = windowSurface; // glfw window surface
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = surfaceExtent;
+
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    // setup queue families
+    QueueFamilyIndices indices = findDeviceQueue (physicalDevice);
+    uint32_t queueFamilyIndices[QUEUE_COUNT] = {QUEUE_NAMES};
+
+    if (indices.graphicsFamily != indices.presentFamily) {
+        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+    } else {
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0; // Optional
+        createInfo.pQueueFamilyIndices = NULL; // Optional
+    }
+
+    createInfo.preTransform = swapDetails.capabilties.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+    // set present mode
+    createInfo.presentMode = surfacePresentMode;
+    createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+    // create swapchain
+    if (vkCreateSwapchainKHR (device, &createInfo, NULL, &swapchain) != VK_SUCCESS) {
+        debug_log ("Failed to create swapchain");
+        return EXIT_FAILURE;
+    }
+
+    // resize and create swapchain image variable
+    vkGetSwapchainImagesKHR (device, swapchain, &imageCount, NULL);
+    realloc (imageCount, sizeof (VkImage) * imageCount);
+    vkGetSwapchainImagesKHR (device, swapchain, &imageCount, swapchainImages);
+
+    // set swapchain variables
+    swapchainImageExtent = surfaceExtent;
+    swapchainImageFormat = surfaceFormat.format;
 
     return EXIT_SUCCESS;
 }
 
+// create image views
+int createImageViews (void) {
+    
+    return EXIT_SUCCESS;
+}
 //
 // Helper function helper implementations
 //
@@ -530,7 +605,6 @@ uint16_t isDeviceSuitable (VkPhysicalDevice questionedDevice) {
     //increase gpu score if same queue supports everything
     if (deviceQueue.graphicsFamily == deviceQueue.presentFamily) {
         score += 1;
-        debug_log ("Same queue family");
     }
     return score;
 }
@@ -568,11 +642,16 @@ SwapChainSupportDetails querySwapChainSupport (VkPhysicalDevice questionedDevice
     // check surface capabilities
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR (questionedDevice, windowSurface, &details.capabilties);
 
+    // formats
     uint32_t formatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR (questionedDevice, windowSurface, &formatCount, details.formats);
+    details.formatCount == formatCount;
     if (formatCount == 0) { details.formats = NULL; }
+
+    // present modes
     uint32_t presentModeCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR (questionedDevice, windowSurface, &presentModeCount, details.presentModes);
+    details.presentModeCount = presentModeCount;
     if (presentModeCount == 0) { details.presentModes = NULL; }
     return details;
 }
@@ -601,7 +680,7 @@ VkPresentModeKHR chooseSwapPresentMode (uint32_t presentModeCount, const VkPrese
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D chooseSwapExtent (const VkSurfaceCapabilitiesKHR *capabilities) {
+VkExtent2D chooseSwapExtent (VkSurfaceCapabilitiesKHR *capabilities) {
 
     // if (capabilities->currentExtent.width != UINT32_MAX) {
     //     return capabilities->currentExtent;

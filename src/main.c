@@ -7,9 +7,9 @@
 int mainLoopTest (void);
 
 int main () {
+	mainLoopTest ();
+	// debug_log ("Hello World!%i%s", 5, "Pizza");
 
-	// mainLoopTest ();
-	debug_log ("Hello World!%li", 5);
 	return EXIT_SUCCESS;
 }
 

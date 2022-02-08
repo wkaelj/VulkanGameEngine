@@ -1,0 +1,17 @@
+# VulkanGameEngine
+
+VulkanGameEngine is a video game I am working on using the vulkan graphics api and the glfw window system.
+I hope to use cglm as the matrix algebra library if I ever get that far
+
+I am currently working on the fileutils and the pipeline creation, as of writing this.
+
+# Build Intstructions
+As of right now all you need installed is the Vulkan SDK (https://www.lunarg.com/vulkan-sdk/), glfw, and cmake (and make). You can find how to install glfw on your system using google.
+
+On Unix based systems, the cmake file should find the vulkan sdk and glfw libs all by itself.
+
+On windows based systems, I got the cmakelists here -> https://youtu.be/ZuHK_5cJ6B8
+
+1. Run the gencmake.sh script, or run cmake yourself/
+2. Run the runmake.sh script, or run make yourself.
+3. run the test.sh script, or run the SimpleVulkanEngine excecutable in the build folder.

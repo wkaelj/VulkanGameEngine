@@ -24,7 +24,7 @@ int readFileBinary (char *filePath, void *pOut) {
     return EXIT_SUCCESS;
 }
 
-int readFileCharArray (char *filePath, char **ppCharacterOut,  uint32_t *pArrayLength) {
+int readFileStringArray (char *filePath, char **ppCharacterOut,  uint32_t *pArrayLength) {
 
     // set array lenth to 0 so no break
     *pArrayLength = 0;
@@ -81,6 +81,9 @@ int readFileCharArray (char *filePath, char **ppCharacterOut,  uint32_t *pArrayL
             debug_log ("Failed to read line %i from file %s", i, filePath);
             return EXIT_FAILURE;
         }
+
+        // advance file path by 1 char in order to reach next line (skip over newline)
+        fgetc (file);
     }
 
     // set output

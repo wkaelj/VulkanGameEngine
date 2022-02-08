@@ -7,6 +7,6 @@
 int readFileBinary (char *filePath, void *pOut);
 
 // reads a file and breaks it up at each linefeed. Retuns as a array of char arrays
-int readFileCharArray (char *filePath, char **ppCharacterOut, u_int32_t *pArrayLength);
+int readFileStringArray (char *filePath, char **ppCharacterOut, u_int32_t *pArrayLength);
 
 #endif

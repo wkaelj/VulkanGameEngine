@@ -8,15 +8,16 @@
 int mainLoopTest (void);
 
 int main () {
-	//mainLoopTest ();
 
 	uint32_t length;
-	readFileCharArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", NULL, &length);
+	readFileStringArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", NULL, &length);
 	char *out[length];
-	readFileCharArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", out, &length);
+	readFileStringArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", out, &length);
 	debug_log ("Array length = %i", length);
 
 	for (size_t i = 0; i < length; i++) debug_log ("String: %s", out[i]);
+
+	mainLoopTest ();
 
 	return EXIT_SUCCESS;
 }

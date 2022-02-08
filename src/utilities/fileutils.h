@@ -1,7 +1,6 @@
 #ifndef FILE_UTILITIES
 #define FILE_UTILITIES
 
-#include <stdlib.h>
 #include "../debug/debug.h"
 
 // reads a file as binary, stores it in void pointer

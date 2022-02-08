@@ -3,12 +3,17 @@
 #include <stdlib.h>
 #include "render/setup/initvk.h"
 #include "debug/debug.h"
+#include "utilities/fileutils.h"
 
 int mainLoopTest (void);
 
 int main () {
-	mainLoopTest ();
+	//mainLoopTest ();
 	// debug_log ("Hello World!%i%s", 5, "Pizza");
+
+	char **out;
+	uint32_t length;
+	readFileCharArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", out, &length);
 
 	return EXIT_SUCCESS;
 }

@@ -22,7 +22,6 @@ int debug_log (const char *format, ...) {
     va_end (args);
     va_start (args, format);
 
-    putchar ('\0'); // malloc fails without this line idk why
     char *bufferString = (char *) malloc ((size_t) requiredMem);
 
     vsprintf (bufferString, format, args); 

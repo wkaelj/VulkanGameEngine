@@ -30,7 +30,9 @@ bool preferIntegratedGPU; // wether to prefer a integrated GPU over a discrete G
 
 // swapchain variables
 VkSwapchainKHR swapchain; // window swapchain
-VkImage swapchainImages[0]; // swapchain images, gets resized in createSwapchain()
+VkImage *swapchainImages; // swapchain images, gets rallocated in createSwapchain()
+uint32_t swapchainImageCount; // variable to store number of swapchain images (both view and normal)
+VkImageView *swapchainImageViews; // swapchain image views
 VkFormat swapchainImageFormat;
 VkExtent2D swapchainImageExtent;
 
@@ -191,6 +193,11 @@ int initvk_cleanVulkan (void) {
 
     if (enableValidationLayers) {
         DestroyDebugUtilsMessengerEXT  (instance, &debugMessenger, NULL);
+    }
+
+    // destroy swapchain image views
+    for (int i = 0; i < arrayLength (swapchainImageViews); i++) {
+        vkDestroyImageView(device, swapchainImageViews[i], NULL);
     }
 
     vkDestroySwapchainKHR (device, swapchain, NULL);
@@ -530,9 +537,9 @@ int createSwapchain (void) {
         return EXIT_FAILURE;
     }
 
-    // resize and create swapchain image variable
-    vkGetSwapchainImagesKHR (device, swapchain, &imageCount, NULL);
-    realloc (imageCount, sizeof (VkImage) * imageCount);
+    // resize and create swapchainImageCount variable
+    vkGetSwapchainImagesKHR (device, swapchain, &swapchainImageCount, NULL);
+    swapchainImages = malloc (sizeof (VkImage) * swapchainImageCount);
     vkGetSwapchainImagesKHR (device, swapchain, &imageCount, swapchainImages);
 
     // set swapchain variables
@@ -544,7 +551,37 @@ int createSwapchain (void) {
 
 // create image views
 int createImageViews (void) {
-    
+
+    // resize swapchain image views to be same as swapchain images
+    swapchainImageViews = malloc (sizeof (VkImageView) * swapchainImageCount);
+    // createinfo pool
+    VkImageViewCreateInfo imageViewCreateInfo = {};
+    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+    // set rgba channels
+    imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+    // setup basic subresource range (basic because no sterioscopic)
+    imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+    imageViewCreateInfo.subresourceRange.levelCount = 1;
+    imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+    imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+    // create new image for each swapchain image
+    for (uint32_t i = 0; i < arrayLength (swapchainImages); i++) {
+
+        imageViewCreateInfo.image = swapchainImages[i];
+        if (vkCreateImageView (device, &imageViewCreateInfo, NULL, &swapchainImageViews[i]) != VK_SUCCESS) {
+            debug_log ("Failed to create VkImageView index #%i", i);
+            return EXIT_FAILURE;
+        }
+
+    }
     return EXIT_SUCCESS;
 }
 //

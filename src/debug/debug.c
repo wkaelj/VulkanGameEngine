@@ -1,34 +1,30 @@
 #include "debug.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 
 int debug_log (const char *format, ...) {
 
-    return 0;
+    #define RESET_ARGS va_end(args); va_start(args, format); // macro to reset args to start
 
-    // get list formats
+    // variable decleration
+    char *output;
+    size_t stringSize;
     va_list args;
     va_start (args, format);
-    int64_t requiredMem;
 
-    requiredMem = vsnprintf (NULL, 0, format, args);
-    if (requiredMem <= 0) {
-        printf ("read failure\n");
-        return EXIT_FAILURE;
-    }
+    // get size of string and allocate mem for output
+    stringSize = vsnprintf (NULL, 0, format, args);
+    output = malloc (stringSize);
 
-    // move va_list back to start
-    va_end (args);
-    va_start (args, format);
+    RESET_ARGS;
 
-    char *bufferString = (char *) malloc ((size_t) requiredMem);
 
-    vsprintf (bufferString, format, args); 
+    // print format string to output variable
+    vsprintf (output, format, args);
 
-    // print final string (I might change this to some in-game box later which is why I wrote this function)
-    printf ("%s\n", bufferString);
-    va_end (args);
-    free (bufferString);
+    // print output string to stdout
+    printf ("%s\n", output);
     return EXIT_SUCCESS;
 }

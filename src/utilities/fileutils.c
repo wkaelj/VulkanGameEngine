@@ -10,7 +10,7 @@ int readFileBinary (char *filePath, void *pOut) {
     FILE *file = fopen (filePath, "rb");
     // check if file opened
     if (file == NULL) { debug_log ("FILEUTILS: Could not open file: %s", filePath); return EXIT_FAILURE; }
-    fseek (file, 0L, SEEK_END); // find end of files
+    fseek (file, 0l, SEEK_END); // find end of files
     fileSizePool = ftell (file); // read bit at end of file aka size
 
     // read file if more then 0 bytes
@@ -30,40 +30,61 @@ int readFileCharArray (char *filePath, char **ppCharacterOut,  uint32_t *pArrayL
     *pArrayLength = 0;
 
     // function variables
-    char **ppOut; // store function output
-    size_t fileSize = 0; // store file size
-
     FILE *file = fopen (filePath, "r");
     if (file == NULL) {
         debug_log ("Could not open file %s", filePath);
         return EXIT_FAILURE;
     }
 
-    // find size of file
-    fseek (file, 0L, SEEK_END); // go to end
-    fileSize = ftell (file); // get position
-
-    // throw error if file is 0 size
-    if (fileSize == 0) {
-        debug_log ("Cannot read file '%s' of size 0", filePath);
-        return EXIT_FAILURE;
+    // read number of linefeeds in file
+    char bufferChar; // char buffer (awesome comment)
+    size_t lineCount = 1; // store the total number of lines in the file to create output array (1 bc first line)
+    while (1) {
+        bufferChar = fgetc (file); // read char
+        if (bufferChar == '\n') lineCount ++; // 
+        if (bufferChar == EOF) break;
     }
-    
-    // go back to start of file
-    fseek (file, 0L, SEEK_SET);
 
-    // allocate enough memory to store whole file to ppOut
-    ppOut = (char **) malloc (fileSize);
+    // return early if no char array output (very important to initialize character output)
+    if (ppCharacterOut == NULL) {
+        *pArrayLength = lineCount;
+        return EXIT_SUCCESS;
+    }
 
-    // read all the lines in the file
-    for (*pArrayLength = 0; fgets (ppOut[*pArrayLength], fileSize, file) == NULL; *pArrayLength++);
-    
-    for (int i = 0; i < 3; i++) {
-        printf (ppOut[i]);
+    // return to start of file
+    fseek (file, 0l, SEEK_SET);
+
+    // read lines and store in ppOut
+    size_t lineStart; // store start of line so it can be returned
+    size_t lineLength; // length of current line
+    for (size_t i = 0; i < lineCount; i++) {
+
+        lineLength = 0; // reset linelength
+
+        lineStart = ftell (file); // store start of line
+        while (1) {
+            bufferChar = fgetc (file);
+            if (bufferChar == '\n' || bufferChar == EOF) break; // break out of loop if char is a linefeed or end of file
+            lineLength++; // if char is not linefeed or end of file increase linelength count by 1;
+        }
+
+        lineLength++; // make room for string terminator
+
+        // return to start of line (stored up there)
+        fseek (file, lineStart, SEEK_SET);
+
+        debug_log ("Linecount = %i", lineCount);
+
+        // read full line of size lineLength
+        ppCharacterOut[i] = malloc (lineLength * sizeof (char)); // allocate memory to string to store line variable
+        if (fgets (ppCharacterOut[i], lineLength, file) == NULL) {
+            debug_log ("Failed to read line %i from file %s", i, filePath);
+            return EXIT_FAILURE;
+        }
     }
 
     // set output
-    ppCharacterOut = ppOut;
+    *pArrayLength = lineCount;
 
     return EXIT_SUCCESS;
 }

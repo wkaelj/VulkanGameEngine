@@ -9,18 +9,21 @@ int mainLoopTest (void);
 
 int main () {
 	//mainLoopTest ();
-	// debug_log ("Hello World!%i%s", 5, "Pizza");
 
-	char **out;
 	uint32_t length;
+	readFileCharArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", NULL, &length);
+	char *out[length];
 	readFileCharArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", out, &length);
+	debug_log ("Array length = %i", length);
+
+	for (size_t i = 0; i < length; i++) debug_log ("String: %s", out[i]);
 
 	return EXIT_SUCCESS;
 }
 
 
 int mainLoopTest (void) {
-
+	
 	// populate inint info struct
 	VkInitInfo initInfo = {};
 	initInfo.windowName = "Hello World";

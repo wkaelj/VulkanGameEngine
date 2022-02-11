@@ -1,3 +1,5 @@
 #! /bin/bash
 
- gdb build/SimpleVulkanEngine
+cd build
+
+ gdb SimpleVulkanEngine

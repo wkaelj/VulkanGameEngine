@@ -9,40 +9,38 @@ int mainLoopTest (void);
 
 int main () {
 
-	uint32_t length;
-	readFileStringArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", NULL, &length);
-	char *out[length];
-	readFileStringArray ("/home/kael/Code/VulkanGameEngine/src/utilities/string.txt", out, &length);
-	debug_log ("Array length = %i", length);
-
-	for (size_t i = 0; i < length; i++) debug_log ("String: %s", out[i]);
-
 	mainLoopTest ();
 
 	return EXIT_SUCCESS;
 }
 
-
+// temp mainloop functions
 int mainLoopTest (void) {
-	
+
+	// tell vulkan where to load shaders from
+	SveShaderModuleLoaderInfo loaderInfo = {};
+	loaderInfo.configFilePath = "Config/shaders_list.txt";
+	loaderInfo.paramCount = 3;
+	loaderInfo.argBreakChar = ';';
 	// populate inint info struct
-	VkInitInfo initInfo = {};
+	SveVkInitInfo initInfo = {};
 	initInfo.windowName = "Hello World";
 	initInfo.windowWidth = 800;
 	initInfo.windowHeight = 600;
 	initInfo.windowFullscreen = false;
 	initInfo.windowResizable = false;
 	initInfo.activateValidation = true;
+	initInfo.shaderLoaderInfo = &loaderInfo;
 
 	// initialize vulkan
-	initvk_initVulkan (&initInfo);
+	sveInitVulkan (&initInfo);
 	
 	// very important loop
-	while (initvk_updateWindow () == EXIT_SUCCESS) {
+	while (sveUpdateWindow () == EXIT_SUCCESS) {
 
 	}
 
 	// fix my garbage
-	initvk_cleanVulkan ();
+	sveCleanVulkan ();
 	return EXIT_SUCCESS;
 }

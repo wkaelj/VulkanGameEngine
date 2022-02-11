@@ -12,6 +12,10 @@ int debug_log (const char *format, ...) {
     va_list args;
     va_start (args, format);
     vprintf (format, args);
+    putchar ('\n');
+
+    return EXIT_SUCCESS;
+    // FIXME corrupts memory
     #else
 
     // this code can be disabled to test other parts of the program. It corrputs memory

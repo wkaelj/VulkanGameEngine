@@ -2,12 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
 
-size_t fileSizePool = 0; // declare here to avaid constant initializatoin
-int readFileBinary (char *filePath, void *pOut) {
+int readFileBinary (char *filePath, void *pOut, size_t *pFileSize) {
 
     // open file
     FILE *file = fopen (filePath, "rb");
+    size_t fileSizePool = 0; // declare here to avaid constant initializatoin
+
     // check if file opened
     if (file == NULL) { debug_log ("FILEUTILS: Could not open file: %s", filePath); return EXIT_FAILURE; }
     fseek (file, 0l, SEEK_END); // find end of files
@@ -20,7 +22,7 @@ int readFileBinary (char *filePath, void *pOut) {
 
     // cleanup and return success
     fclose (file);
-    fileSizePool = 0;
+    *pFileSize = fileSizePool;
     return EXIT_SUCCESS;
 }
 
@@ -35,6 +37,8 @@ int readFileStringArray (char *filePath, char **ppCharacterOut,  uint32_t *pArra
         debug_log ("Could not open file %s", filePath);
         return EXIT_FAILURE;
     }
+    assert (file != NULL);
+    
 
     // read number of linefeeds in file
     char bufferChar; // char buffer (awesome comment)
@@ -50,6 +54,7 @@ int readFileStringArray (char *filePath, char **ppCharacterOut,  uint32_t *pArra
         *pArrayLength = lineCount;
         return EXIT_SUCCESS;
     }
+    assert (ppCharacterOut != NULL);
 
     // return to start of file
     fseek (file, 0l, SEEK_SET);
@@ -72,8 +77,6 @@ int readFileStringArray (char *filePath, char **ppCharacterOut,  uint32_t *pArra
 
         // return to start of line (stored up there)
         fseek (file, lineStart, SEEK_SET);
-
-        debug_log ("Linecount = %i", lineCount);
 
         // read full line of size lineLength
         ppCharacterOut[i] = malloc (lineLength * sizeof (char)); // allocate memory to string to store line variable

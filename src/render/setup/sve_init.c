@@ -1101,7 +1101,7 @@ VkDebugUtilsMessengerEXT* pDebugMessenger) {
     if (func != NULL) {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     } else {
-        debug_log ("Failed to load 'vkCreateDebugUtilsMessengerEXT'");
+        debug_log ("Failed to load 'vkCreateDebugUtilsMessengerEXT', is NULL");
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }

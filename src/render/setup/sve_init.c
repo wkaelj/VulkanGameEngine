@@ -1,6 +1,6 @@
 // initvk implementation file
 
-#include "initvk.h"
+#include "sve_init.h"
 
 //
 // Magic Number Definitions
@@ -1101,6 +1101,7 @@ VkDebugUtilsMessengerEXT* pDebugMessenger) {
     if (func != NULL) {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     } else {
+        debug_log ("Failed to load 'vkCreateDebugUtilsMessengerEXT'");
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
@@ -1114,6 +1115,8 @@ void DestroyDebugUtilsMessengerEXT ( VkInstance instance,
 
         if (func != NULL) {
             func (instance, debugMessenger, pAllocator);
+        } else {
+            debug_log ("Failed to load 'vkDestroyDebugUtilsMessengerEXT'");
         }
 }
 

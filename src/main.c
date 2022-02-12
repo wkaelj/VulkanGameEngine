@@ -1,7 +1,7 @@
 // temp main function
 #include <stdio.h>
 #include <stdlib.h>
-#include "render/setup/initvk.h"
+#include "render/setup/sve_init.h"
 #include "debug/debug.h"
 #include "utilities/fileutils.h"
 

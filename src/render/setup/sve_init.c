@@ -114,8 +114,6 @@ int createWindow (SveVkInitInfo *info);
 int createInstance (void);
 // create a glfw window surface, and store it in windowSurface or smthn
 int createWindowSurface (void);
-// setup vulkan validation layers
-int setupValidation (void); // always fails to load functions (function loaders broken this works)
 // select a physical device and store it in physicalDevice
 int selectPhysicalDevice (void);
 // test if questionedDevice is suitable for rendering, 0 means no, higher score is better
@@ -171,13 +169,6 @@ int sveInitVulkan (SveVkInitInfo *initInfo) {
     if (createWindow (initInfo) != EXIT_SUCCESS) {
         debug_log ("Failed to create window.");
         return EXIT_FAILURE;
-    }
-    // setup validation layers
-    if (enableValidationLayers) {
-        if (setupValidation () != EXIT_SUCCESS) {
-            enableValidationLayers = false;
-            debug_log ("Incomplete validation layer support. Disabling validation layers.");
-        }
     }
     if (createInstance () != EXIT_SUCCESS) {
         debug_log ("Failed to create vulkan instance.");
@@ -281,106 +272,16 @@ int createWindowSurface (void) {
     return  EXIT_SUCCESS;
 }
 
-// function to initialize a vulkan instance
-int createInstance (void) {
-
-    VkApplicationInfo appInfo = {};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Hello Triangle";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
-
-    VkInstanceCreateInfo createInfo = {};
-    createInfo.pApplicationInfo = &appInfo;
-
-    // get glfw extensinos
-    uint32_t glfwExtensionCount = 0;
-    const char **glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    // include validation layer extensions
-    const char **requiredExtensions;
-    uint32_t requiredExtensionCount = 0;
-    if (enableValidationLayers) {
-        debug_log ("Validation Layers enabled");
-        requiredExtensionCount = glfwExtensionCount + 1;
-        requiredExtensions = malloc (sizeof (char *) * (requiredExtensionCount)); // allocate enough memory to fit glfwExtensionCount and 1 extra
-        // set extensions to glfwExtensions
-        // for (uint32_t i = 0; i < glfwExtensionCount; i++) {
-        //     requiredExtensions[i] = glfwExtensions[i];
-        // }
-        memcpy (requiredExtensions, glfwExtensions, sizeof (char *) * glfwExtensionCount);
-        requiredExtensions[requiredExtensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-    } else {
-        requiredExtensionCount = glfwExtensionCount;
-        requiredExtensions = glfwExtensions; // add no required extensions if not wanted
-    }
-
-    // check instance extensions
-    uint32_t extensionCount = 0;
-    vkEnumerateInstanceExtensionProperties (NULL, &extensionCount, NULL);
-    VkExtensionProperties extensionNames[extensionCount];
-    vkEnumerateInstanceExtensionProperties (NULL, &extensionCount, extensionNames);
-
-    // check if required extensions are available
-    for (uint32_t i = 0; i < requiredExtensionCount; i++) {
-
-        bool found = false;
-
-        //iterate through available extensions
-        for (uint32_t x = 0; x < extensionCount; x++) {
-            if (strcmp (requiredExtensions[i], extensionNames[x].extensionName) == 0) {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
-            debug_log ("Unavaible glfw extension: %s", requiredExtensions[i]);
-            return EXIT_FAILURE;
-        }
-    }
-
-    createInfo.enabledExtensionCount = glfwExtensionCount;
-    createInfo.ppEnabledExtensionNames = glfwExtensions;
-
-    // validation layers
-    if (enableValidationLayers) {
-        createInfo.enabledLayerCount = arrayLength (requiredLayerNames);
-        createInfo.ppEnabledLayerNames = requiredLayerNames;
-    } else {
-        createInfo.enabledLayerCount = 0;
-    }
-
-    if (vkCreateInstance (&createInfo, NULL, &instance) != VK_SUCCESS) {
-        debug_log ("Failed to create vulkan instance");
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
-}
-
-// debug callback function decleration
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData);
-
-// function to setup optional debugging funcitonality
-int setupValidation (void) {
-
-    // check for validation support
+bool checkValidationLayerSupport()
+{
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, NULL);
 
     VkLayerProperties availableLayers[layerCount];
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers);
 
-    // check if required extensions are available
-    for (uint32_t i = 0; i < arrayLength (requiredLayerNames); i++) {
+    for (uint32_t i = 0; i < arrayLength(requiredLayerNames); i++)
+    {
         bool found = false;
 
         //iterate through available extensions
@@ -393,23 +294,82 @@ int setupValidation (void) {
         }
 
         if (found == false) {
-            debug_log ("Unavailable valiation layer: %s", requiredLayerNames[i]);
-            return EXIT_FAILURE;
+            debug_log("Unavailable valiation layer: %s", requiredLayerNames[i]);
+            return false;
         }
     }
 
-    // create debug messenger
-    VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = debugCallback;
+    return true;
+}
 
-    if (CreateDebugUtilsMessengerEXT (instance, &createInfo, NULL, &debugMessenger) != VK_SUCCESS) {
-        debug_log ("Failed to intialize debug messenger.");
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) {
+
+    debug_log("validation layer: %s", pCallbackData->pMessage);
+
+    return VK_FALSE;
+}
+// function to initialize a vulkan instance
+int createInstance (void) {
+
+
+    if (enableValidationLayers && !checkValidationLayerSupport())
+    {
+        debug_log("validation layers requested, but not available!");
+    }
+
+    VkApplicationInfo appInfo = {};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Hello Triangle";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "No Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    VkInstanceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
+
+    // get glfw extensinos
+    uint32_t glfwExtensionCount = 0;
+    const char **glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    int32_t extensionCount = glfwExtensionCount + 1;
+    const char* extensions[extensionCount];
+    for (int i = 0; i < glfwExtensionCount; i++)
+    {
+        extensions[i] = glfwExtensions[i];
+    }
+    extensions[extensionCount-1] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+    createInfo.enabledExtensionCount = extensionCount;
+    createInfo.ppEnabledExtensionNames = extensions;
+
+    // validation layers
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
+    if (enableValidationLayers) {
+        createInfo.enabledLayerCount = arrayLength (requiredLayerNames);
+        createInfo.ppEnabledLayerNames = requiredLayerNames;
+        
+        debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debugCreateInfo.pfnUserCallback = debugCallback;
+        
+        createInfo.pNext = &debugCreateInfo;
+    } else {
+        createInfo.enabledLayerCount = 0;
+        createInfo.pNext = NULL;
+    }
+
+    if (vkCreateInstance (&createInfo, NULL, &instance) != VK_SUCCESS) {
+        debug_log ("Failed to create vulkan instance");
         return EXIT_FAILURE;
     }
-    debug_log ("Created Debug Messenger");
+
     return EXIT_SUCCESS;
 }
 
@@ -639,7 +599,7 @@ int createRenderPass (void) {
     // attachment references
     VkAttachmentReference colorAttachmentRef = {};
     colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 
     // subpass
     VkSubpassDescription subpass = {};
@@ -1118,16 +1078,4 @@ void DestroyDebugUtilsMessengerEXT ( VkInstance instance,
         } else {
             debug_log ("Failed to load 'vkDestroyDebugUtilsMessengerEXT'");
         }
-}
-
-// debug callback function to print debug messeges
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) {
-
-    debug_log ("Vulkan Error: %s", pCallbackData->pMessage);
-
-    return VK_FALSE;
 }

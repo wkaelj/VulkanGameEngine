@@ -66,8 +66,11 @@ file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+#set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 17)
 #target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 17)
+
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/build")
 
 if (WIN32)

@@ -14,4 +14,5 @@ On windows based systems, I got the cmakelists here -> https://youtu.be/ZuHK_5cJ
 
 1. Run the gencmake.sh script, or run cmake yourself/
 2. Run the runmake.sh script, or run make yourself.
-3. run the test.sh script, or run the SimpleVulkanEngine excecutable in the build folder.
+3. run the compile_shaders.sh script, to generate shaders
+4. run the test.sh script, or run the SimpleVulkanEngine excecutable in the build folder.

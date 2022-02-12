@@ -204,7 +204,7 @@ int sveInitVulkan (SveVkInitInfo *initInfo) {
     }
 
     if (createGraphicsPipeline (initInfo) != EXIT_SUCCESS) {
-        debug_log ("Failed to create render pipeline.");
+        debug_log ("Failed to create graphics pipeline.");
         return EXIT_FAILURE;
     }
 
@@ -434,9 +434,10 @@ int selectPhysicalDevice (void) {
     uint32_t suitableDeviceCount = 0;
     SuitableDevice suitableDevices[availableDeviceCount];
 
-    uint8_t tmpDeviceOutput = 0; // used to store function output in for loop
+    uint16_t tmpDeviceOutput = 0; // used to store function output in for loop
     for (uint32_t i = 0; i < availableDeviceCount; i++) {
         tmpDeviceOutput = isDeviceSuitable (availableDevices[i]);
+        debug_log ("Device score = %i", tmpDeviceOutput);
         if (tmpDeviceOutput > 0) {
             suitableDevices[suitableDeviceCount].physicalDevice = availableDevices[i];
             suitableDevices[suitableDeviceCount].deviceScore = tmpDeviceOutput;
@@ -455,6 +456,8 @@ int selectPhysicalDevice (void) {
     outputDevice.deviceScore = 0;
     outputDevice.physicalDevice = VK_NULL_HANDLE;
     for (uint16_t i = 0; i < suitableDeviceCount; i++) {
+
+        debug_log ("Device score of %s = %i", NULL, outputDevice.deviceScore);
         if (suitableDevices[i].deviceScore > outputDevice.deviceScore) {
             outputDevice.deviceScore = suitableDevices[i].deviceScore;
             outputDevice.physicalDevice = suitableDevices[i].physicalDevice;
@@ -639,7 +642,7 @@ int createRenderPass (void) {
     // attachment references
     VkAttachmentReference colorAttachmentRef = {};
     colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 
     // subpass
     VkSubpassDescription subpass = {};
@@ -842,7 +845,9 @@ uint16_t isDeviceSuitable (VkPhysicalDevice questionedDevice) {
 
     // score device based on type of gpu
     if (score == 0) {
-        // do skip to return 0 if score 0;
+        debug_log ("Device has score 0");
+        return 0;
+
     } else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
         score += 4;
     } else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {

@@ -1,6 +1,6 @@
 // initvk implementation file
 
-#include "sve_init.h"
+#include "sve_device.h"
 
 //
 // Magic Number Definitions
@@ -41,24 +41,6 @@ typedef struct {
     uint32_t presentModeCount;
 } SwapChainSupportDetails;
 
-// struct to hold data to create shaders
-typedef struct {
-
-    uint32_t *pCode; // pointer to glsl code
-    size_t codeSize; // size of pCode
-    char *fileName; // name of the file for shader code
-    char *shaderName; // name of shader
-    VkShaderModule shaderModule; // shader module
-    VkShaderStageFlagBits shaderType; // if shader is vert or frag shader
-} ShaderCreateInfoContainer;
-
-typedef struct {
-    VkShaderModule *shaders;
-    uint32_t shaderCount;
-    VkPipelineShaderStageCreateInfo *createInfos;
-} ShaderInfo;
-
-
 //
 // Variable Declerations
 //
@@ -73,11 +55,8 @@ VkSurfaceKHR windowSurface; // vulkan window surface
 VkDebugUtilsMessengerEXT debugMessenger; // vulkan debug messenger
 VkRenderPass renderPass; // vulkan render passes
 VkPipelineLayout pipelineLayout; // vulkan pipeline layout
-VkPipeline pipeline; // vulkan pipeline
 bool preferIntegratedGPU; // wether to prefer a integrated GPU over a discrete GPU
 SveSwapchainData swapchain = {}; // store swapchain data
-ShaderInfo shaderInfo = {}; // store shaders
-
 
 
 // required validation layers (wanna put in config file)
@@ -109,7 +88,7 @@ inline int64_t clampValue(uint32_t min, uint32_t max, uint32_t val) {
 //
 
 // create a glfw window
-int createWindow (SveVkInitInfo *info);
+int createWindow (SveDeviceCreateInfo *info);
 // create a vulkan instance and store it in instance
 int createInstance (void);
 // create a glfw window surface, and store it in windowSurface or smthn
@@ -130,12 +109,6 @@ int createSwapchain (void);
 int createImageViews (void);
 // function to create render pass
 int createRenderPass (void);
-// create graphics pipeline
-int createGraphicsPipeline (SveVkInitInfo *initInfo);
-// load shader modules
-int loadShaderModules (VkDevice *vulkanDevice, SveShaderModuleLoaderInfo *loaderInfo);
-// destroy shader modules
-int destroyShaderModules (void);
 // check if questionedDevice supports the swapchain
 SwapChainSupportDetails querySwapChainSupport (VkPhysicalDevice questionedDevice);
 // choose desired or best swap chain mode
@@ -157,7 +130,7 @@ void DestroyDebugUtilsMessengerEXT ( VkInstance instance,
 // 
 // Public Functions
 // 
-int sveInitVulkan (SveVkInitInfo *initInfo) {
+int sveCreateDevice (SveDeviceCreateInfo *initInfo) {
 
     // manage struct inputs
     enableValidationLayers = initInfo->activateValidation;
@@ -188,14 +161,14 @@ int sveInitVulkan (SveVkInitInfo *initInfo) {
         debug_log ("Failed to create logical device.");
         return EXIT_FAILURE;
     }
-
-    if (createRenderPass () != EXIT_SUCCESS) {
-        debug_log ("Failed to create render pass.");
+    // create swapchain
+    if (createSwapchain () != EXIT_SUCCESS) {
+        debug_log ("Failed to create swapchain.");
         return EXIT_FAILURE;
     }
-
-    if (createGraphicsPipeline (initInfo) != EXIT_SUCCESS) {
-        debug_log ("Failed to create graphics pipeline.");
+    // create render pass
+    if (createRenderPass () != EXIT_SUCCESS) {
+        debug_log ("Failed to create render pass.");
         return EXIT_FAILURE;
     }
 
@@ -212,10 +185,8 @@ int sveUpdateWindow (void) {
     return EXIT_SUCCESS;
 }
 
-int sveCleanVulkan (void) {
+int sveDestroyDevice (void) {
 
-    vkDestroyPipeline (device, pipeline, NULL);
-    vkDestroyPipelineLayout (device, pipelineLayout, NULL);
     vkDestroyRenderPass (device, renderPass, NULL);
 
     // destroy swapchain image views
@@ -241,12 +212,41 @@ int sveCleanVulkan (void) {
     return EXIT_SUCCESS;
 }
 
+int sveGetWindowSize (uint32_t *pWidth, uint32_t *pHeight) {
+    if (pWidth == NULL) pWidth = malloc (sizeof (uint32_t));
+    if (pHeight == NULL) pHeight = malloc (sizeof (uint32_t));
+
+    *pWidth = swapchain.imageExtent.width;
+    *pHeight = swapchain.imageExtent.height;
+
+    return EXIT_SUCCESS;
+}
+
+int sveGetDevice (VkDevice *pDevice) {
+
+    if (device == VK_NULL_HANDLE) return EXIT_FAILURE;
+
+    if (pDevice == NULL) pDevice = malloc (sizeof (VkDevice));
+
+    *pDevice = device;
+
+    return EXIT_SUCCESS;
+}
+
+int sveGetSwapchain (SveSwapchainData *pSwapchainData) {
+
+    if (swapchain.swapchain == NULL) return EXIT_FAILURE;
+    pSwapchainData = &swapchain;
+
+    return EXIT_SUCCESS;
+}
+
 //
 // Private function implementation
 // 
 
 // function to create a glfw window
-int createWindow (SveVkInitInfo *info) {
+int createWindow (SveDeviceCreateInfo *info) {
 
     glfwInit ();
     
@@ -272,8 +272,7 @@ int createWindowSurface (void) {
     return  EXIT_SUCCESS;
 }
 
-bool checkValidationLayerSupport()
-{
+int checkValidationLayerSupport () {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, NULL);
 
@@ -295,11 +294,11 @@ bool checkValidationLayerSupport()
 
         if (found == false) {
             debug_log("Unavailable valiation layer: %s", requiredLayerNames[i]);
-            return false;
+            return EXIT_FAILURE;
         }
     }
 
-    return true;
+    return EXIT_SUCCESS;
 }
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -307,18 +306,19 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData) {
-
-    debug_log("validation layer: %s", pCallbackData->pMessage);
+    
+    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    debug_log("Validation Layer: %s", pCallbackData->pMessage);
 
     return VK_FALSE;
 }
 // function to initialize a vulkan instance
 int createInstance (void) {
-
-
-    if (enableValidationLayers && !checkValidationLayerSupport())
-    {
+    
+    // check if validation support is available
+    if (enableValidationLayers && checkValidationLayerSupport() != EXIT_SUCCESS) {
         debug_log("validation layers requested, but not available!");
+        enableValidationLayers = false;
     }
 
     VkApplicationInfo appInfo = {};
@@ -397,7 +397,6 @@ int selectPhysicalDevice (void) {
     uint16_t tmpDeviceOutput = 0; // used to store function output in for loop
     for (uint32_t i = 0; i < availableDeviceCount; i++) {
         tmpDeviceOutput = isDeviceSuitable (availableDevices[i]);
-        debug_log ("Device score = %i", tmpDeviceOutput);
         if (tmpDeviceOutput > 0) {
             suitableDevices[suitableDeviceCount].physicalDevice = availableDevices[i];
             suitableDevices[suitableDeviceCount].deviceScore = tmpDeviceOutput;
@@ -417,7 +416,6 @@ int selectPhysicalDevice (void) {
     outputDevice.physicalDevice = VK_NULL_HANDLE;
     for (uint16_t i = 0; i < suitableDeviceCount; i++) {
 
-        debug_log ("Device score of %s = %i", NULL, outputDevice.deviceScore);
         if (suitableDevices[i].deviceScore > outputDevice.deviceScore) {
             outputDevice.deviceScore = suitableDevices[i].deviceScore;
             outputDevice.physicalDevice = suitableDevices[i].physicalDevice;
@@ -584,185 +582,6 @@ int createImageViews (void) {
     return EXIT_SUCCESS;
 }
 
-// create render pass
-int createRenderPass (void) {
-
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = swapchain.imageFormat;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // TODO implement stencil
-    
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    // attachment references
-    VkAttachmentReference colorAttachmentRef = {};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
-
-    // subpass
-    VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-
-    VkRenderPassCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    createInfo.attachmentCount = 1;
-    createInfo.pAttachments = &colorAttachment;
-    createInfo.subpassCount = 1;
-    createInfo.pSubpasses = &subpass;
-
-    if (vkCreateRenderPass (device, &createInfo, NULL, &renderPass) != VK_SUCCESS) {
-        debug_log ("Failed to create render pass");
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
-}
-
-// create grapics pipeline
-int createGraphicsPipeline (SveVkInitInfo *initInfo) {
-
-    // load shaders
-    if (loadShaderModules (&device, initInfo->shaderLoaderInfo) != EXIT_SUCCESS) return EXIT_FAILURE;
-
-    // fixed function pipline stages
-
-    // input assembler
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = NULL; // Optional
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = NULL; // Optional
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = {};
-    inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // make a triangle with each three verts
-    inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE; // do not reuse verts
-
-    // viewport
-    VkViewport viewport = {};
-    viewport.x = 0.0f; // viewport upper left corner
-    viewport.y = 0.0f;
-    viewport.width = (float) swapchain.imageExtent.width;
-    viewport.height = (float) swapchain.imageExtent.height;
-    viewport.maxDepth = 1.0f;
-    viewport.minDepth = 0.0f;
-
-    VkRect2D scissor = {};
-    scissor.offset.x = 0;
-    scissor.offset.y = 0;
-    scissor.extent = swapchain.imageExtent;
-
-    VkPipelineViewportStateCreateInfo viewportState = {};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.pViewports = &viewport;
-    viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;\
-
-    // rasterizer
-    VkPipelineRasterizationStateCreateInfo rasterizer = {};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT; // dont render faces pointing backwards
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE; // front face is verts clockwise
-    rasterizer.depthBiasEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL; // fill tris
-
-    // multisampling
-    VkPipelineMultisampleStateCreateInfo multisampling = {};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    multisampling.minSampleShading = 1.0f; // Optional
-    multisampling.pSampleMask = NULL; // Optional
-    multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-    multisampling.alphaToOneEnable = VK_FALSE; // Optional
-
-    // color blending
-    // framebuffer specific
-
-    // enable later if I want special effects or smthn
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
-
-    // global color blending settings
-    VkPipelineColorBlendStateCreateInfo colorBlending = {};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
-    colorBlending.blendConstants[0] = 0.0f; // Optional
-    colorBlending.blendConstants[1] = 0.0f; // Optional
-    colorBlending.blendConstants[2] = 0.0f; // Optional
-    colorBlending.blendConstants[3] = 0.0f; // Optional
-
-    // dynamic state (used to recreate pipline)
-    //TODO dynamic state
-
-    // pipeline layout
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-    pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount = 0;
-    pipelineLayoutCreateInfo.pSetLayouts = NULL;
-    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-    pipelineLayoutCreateInfo.pPushConstantRanges = NULL;
-
-    if (vkCreatePipelineLayout (device, &pipelineLayoutCreateInfo, NULL, &pipelineLayout) != VK_SUCCESS) {
-        debug_log ("Failed to create pipelineLayout.");
-        return EXIT_FAILURE;
-    }
-
-    // create pipeline
-    VkGraphicsPipelineCreateInfo createInfo = {};
-    createInfo.sType  = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-
-    // set states from before
-    createInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
-    createInfo.pViewportState = &viewportState;
-    createInfo.pRasterizationState = &rasterizer;
-    createInfo.pMultisampleState = &multisampling;
-    createInfo.pColorBlendState = &colorBlending;
-    shaderInfo.shaders = shaderInfo.shaders;
-    createInfo.stageCount = shaderInfo.shaderCount;
-    createInfo.pStages = shaderInfo.createInfos;
-
-    createInfo.layout = pipelineLayout;
-    createInfo.renderPass = renderPass;
-    createInfo.subpass = 0;
-
-    // TODO use to create new pipelines
-    // createInfo.flags = VK_PIPELINE_CREATE_DERIVATIVE_BIT;
-    createInfo.basePipelineHandle = VK_NULL_HANDLE;
-    createInfo.basePipelineIndex = -1;
-
-    // create graphics pipeline
-    if (vkCreateGraphicsPipelines (device, VK_NULL_HANDLE, 1, &createInfo, NULL, &pipeline) != VK_SUCCESS) {
-        debug_log ("Failed to create graphics pipeline");
-        return EXIT_FAILURE;
-    }
-
-    // delete shader modules after creation
-    destroyShaderModules ();
-    return EXIT_SUCCESS;
-}
-
 //
 // Helper function helper implementations
 //
@@ -795,8 +614,16 @@ uint16_t isDeviceSuitable (VkPhysicalDevice questionedDevice) {
     // check if device supports swapchain
     if (hasExtensionSupport) {
         SwapChainSupportDetails swapchainInfo = querySwapChainSupport (questionedDevice);
-        supportsSwapchain = swapchainInfo.formats != NULL && swapchainInfo.presentModes != NULL;
+        supportsSwapchain = swapchainInfo.formatCount != 0 && swapchainInfo.presentModeCount != 0;
     }
+
+    // DEBUG
+    if (!supportsQueues)
+        debug_log ("Lacks queue support");
+    if (!hasExtensionSupport)
+        debug_log ("Lacks extension support");
+    if (!supportsSwapchain)
+        debug_log ("Lacks swapchain support");
 
     // check if device supports all functionality
     if (hasExtensionSupport && supportsQueues && supportsSwapchain) {
@@ -805,7 +632,7 @@ uint16_t isDeviceSuitable (VkPhysicalDevice questionedDevice) {
 
     // score device based on type of gpu
     if (score == 0) {
-        debug_log ("Device has score 0");
+        debug_log ("Device '%s' has score %i", deviceProperties.deviceName, score);
         return 0;
 
     } else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
@@ -861,23 +688,27 @@ SwapChainSupportDetails querySwapChainSupport (VkPhysicalDevice questionedDevice
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR (questionedDevice, windowSurface, &details.capabilties);
 
     // formats
-    uint32_t formatCount = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR (questionedDevice, windowSurface, &formatCount, details.formats);
-    details.formatCount = formatCount;
-    if (formatCount == 0) { details.formats = NULL; }
+    vkGetPhysicalDeviceSurfaceFormatsKHR (questionedDevice, windowSurface, &details.formatCount, NULL);
+    assert (details.formatCount > 0);
+    details.formats = malloc (sizeof (VkSurfaceFormatKHR) * details.formatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR (questionedDevice, windowSurface, &details.formatCount, details.formats);
+
+    if (details.formatCount == 0) { details.formats = NULL; }
 
     // present modes
-    uint32_t presentModeCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR (questionedDevice, windowSurface, &presentModeCount, details.presentModes);
-    details.presentModeCount = presentModeCount;
-    if (presentModeCount == 0) { details.presentModes = NULL; }
+    vkGetPhysicalDeviceSurfacePresentModesKHR (questionedDevice, windowSurface, &details.presentModeCount, NULL);
+    assert (details.presentModeCount > 0);
+    details.presentModes = malloc (sizeof (VkSurfaceFormatKHR) * details.presentModeCount);
+    vkGetPhysicalDeviceSurfacePresentModesKHR (questionedDevice, windowSurface, &details.presentModeCount, details.presentModes);
+
+
     return details;
 }
 
 VkSurfaceFormatKHR chooseSwapSurfaceFormat (uint32_t formatCount, const VkSurfaceFormatKHR *availableFormats) {
 
     for (uint32_t i = 0; i < formatCount; i++) {
-        if (availableFormats->format == VK_FORMAT_B8G8R8_SRGB && availableFormats->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+        if (availableFormats[i].format == VK_FORMAT_B8G8R8_SRGB && availableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             return availableFormats[i];
         }
     }
@@ -920,103 +751,6 @@ VkExtent2D chooseSwapExtent (VkSurfaceCapabilitiesKHR *capabilities) {
     return actualExtent;
 }
 
-// function to load shader modules
-// load shader function reads list of shaders from SHADERLIST_FILEPATH, and then loads all of the shaders in to the array
-int loadShaderModules (VkDevice *vulkanDevice, SveShaderModuleLoaderInfo *loaderInfo) {
-
-    // read config file
-    uint32_t shaderCount; // variable not to mess up shaderModule count
-    if (readFileStringArray (loaderInfo->configFilePath, NULL, &shaderCount) != EXIT_SUCCESS) return EXIT_FAILURE;
-    char *shaderConfigs[shaderCount];
-    if (readFileStringArray (loaderInfo->configFilePath, shaderConfigs, &shaderCount) != EXIT_SUCCESS) return EXIT_FAILURE;
-
-    // shader module create info
-    ShaderCreateInfoContainer shaderModuleInfo[shaderCount]; // TODO check if this needs to be moved to a pointer
-    const char argBreakChar = loaderInfo->argBreakChar;
-
-    // parse file names
-    for (size_t i = 0; i < shaderCount; i++) {
-        // variables
-        char *shaderParams[loaderInfo->paramCount];
-        char *nameCopy = shaderConfigs[i]; // copy shaderconfigs into buffer var to be safe
-
-        // splot config string apart at ARBREAK_CHAR
-        for (size_t x = 0; x < loaderInfo->paramCount; x++) {
-            shaderParams[x] = strsep (&nameCopy, &argBreakChar);
-        }
-
-        // read parameters to struct
-        shaderModuleInfo[i].shaderName = shaderParams[0];
-        shaderModuleInfo[i].fileName = shaderParams[2];
-
-        // check if string is vertex or fragment, and chose vertex or fragment shader
-        if (strcmp (shaderParams[1], "VERTEX") == 0) {
-            shaderModuleInfo[i].shaderType = VK_SHADER_STAGE_VERTEX_BIT;
-        } else if (strcmp (shaderParams[1], "FRAGMENT") == 0) {
-            shaderModuleInfo[i].shaderType = VK_SHADER_STAGE_FRAGMENT_BIT;
-        } else {
-            debug_log ("Failed to read shader type of shader '%s', unrecognised param '%s'", shaderModuleInfo[i].shaderName, shaderParams[1]);
-        }
-
-        // debug
-        assert (shaderModuleInfo[i].shaderName != NULL);
-        assert (shaderModuleInfo[i].fileName != NULL);
-
-        // read files
-        if (readFileBinary (shaderModuleInfo[i].fileName, shaderModuleInfo[i].pCode, &shaderModuleInfo[i].codeSize) != EXIT_SUCCESS) {
-            debug_log ("Failed to read shader from file '%s'", shaderConfigs[i]);
-            return EXIT_FAILURE;
-        }
-    }
-
-    // allocate memory to storage structs
-    shaderInfo.createInfos = malloc (sizeof (VkPipelineShaderStageCreateInfo) * shaderCount);
-    shaderInfo.shaders = malloc (sizeof (VkShaderModule) * shaderCount);
-    shaderInfo.shaderCount = shaderCount;
-
-    // create shader modules from file binaries
-    VkShaderModuleCreateInfo shaderModuleCreateInfo = {}; // define a shader module create info so it does not have to be redefined inside for loop
-    shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    for (size_t i = 0; i < shaderCount; i++) {
-
-        // define creatinfo properties
-        shaderModuleCreateInfo.codeSize = shaderModuleInfo[i].codeSize; // filesize I read by readFileBinary
-        shaderModuleCreateInfo.pCode = shaderModuleInfo[i].pCode; // file binary read by readFileBinary
-
-        // create shader module, if failes throw error and exit failure
-        if (vkCreateShaderModule (*vulkanDevice, &shaderModuleCreateInfo, NULL, &shaderModuleInfo[i].shaderModule) != VK_SUCCESS) {
-            debug_log ("Failed to create shader module for shader file '%s'", shaderConfigs[i]);
-            return EXIT_FAILURE;
-        }
-
-        // store shader module
-        shaderInfo.shaders[i] = shaderModuleInfo[i].shaderModule;
-
-        // create shader create info to use later
-        VkPipelineShaderStageCreateInfo shaderModuleCreateInfo = {};
-        shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shaderModuleCreateInfo.module = shaderModuleInfo[i].shaderModule;
-        shaderModuleCreateInfo.pName = shaderModuleInfo[i].shaderName;
-        shaderModuleCreateInfo.pSpecializationInfo = NULL;
-        shaderModuleCreateInfo.stage = VK_SHADER_STAGE_ALL_GRAPHICS;
-        shaderModuleCreateInfo.flags = shaderModuleInfo[i].shaderType;
-
-        shaderInfo.createInfos[i] = shaderModuleCreateInfo;
-    }
-
-    return EXIT_SUCCESS;
-}
-
-int destroyShaderModules (void) {
-
-    // destroy shader modules
-    for (uint32_t i = 0; i < shaderInfo.shaderCount; i++) {
-        vkDestroyShaderModule (device, shaderInfo.shaders[i], NULL);
-    }
-
-    return EXIT_SUCCESS;
-}
-
 // helper function to access required device queues
 QueueFamilyIndices findDeviceQueue (VkPhysicalDevice questionedDevice) {
 
@@ -1037,20 +771,28 @@ QueueFamilyIndices findDeviceQueue (VkPhysicalDevice questionedDevice) {
             if (deviceQueueProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 indices.graphicsFamily = i;
                 indices.foundGraphicsFamily = true;
+                debug_log ("Graphics queue = %i", i); // DEBUG
+
             }
         }
 
         // check for presentationSupport if not already found
         if (!indices.foundPresentFamily) {
-            vkGetPhysicalDeviceSurfaceSupportKHR (questionedDevice, i, windowSurface, &presentationSupport);
+            if (vkGetPhysicalDeviceSurfaceSupportKHR (questionedDevice, i, windowSurface, &presentationSupport) != VK_SUCCESS)
+                debug_log ("Failed find presentation support!");
+            
             if (presentationSupport) {
-                indices.foundPresentFamily = true;
+                assert (presentationSupport);
+                indices.foundPresentFamily = presentationSupport;
                 indices.presentFamily = i;
+                debug_log ("Present queue = %i", i); // DEBUG
+
             }
         }
 
         // check if all queues found
         if (indices.foundPresentFamily && indices.foundGraphicsFamily) {
+            debug_log ("Leaving Loop");
             break;
         }
     }

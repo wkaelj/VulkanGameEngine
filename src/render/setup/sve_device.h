@@ -12,12 +12,7 @@
 #include "../../utilities/fileutils.h"
 #include <assert.h>
 
-// structure to define information about shader config file
-typedef struct {
-    char *configFilePath;
-    char argBreakChar;
-    size_t paramCount;
-} SveShaderModuleLoaderInfo;
+
 
 // info to intitialize a vulkan instance
 typedef struct {
@@ -28,8 +23,7 @@ typedef struct {
     uint16_t windowHeight;
     bool activateValidation;
     bool preferIntegratedGPU;
-    SveShaderModuleLoaderInfo *shaderLoaderInfo;
-} SveVkInitInfo;
+} SveDeviceCreateInfo;
 
 // struct to store vulkan swapchain data
 typedef struct {
@@ -41,14 +35,29 @@ typedef struct {
     VkExtent2D imageExtent;
 } SveSwapchainData;
 
+
+
+//
+// Public Functions
+//
+
 // function to initialize a vulkan instance
-int sveInitVulkan (SveVkInitInfo *initInfo);
+int sveCreateDevice (SveDeviceCreateInfo *initInfo);
 
 // function to update the glfw window created by initvk_initVulkan
 // Returns "EXIT_FAILURE" if window should close
 int sveUpdateWindow (void);
 
+// return dimensions of swapchain window
+int sveGetWindowSize (uint32_t *pWidth, uint32_t *pHeight);
+
+// set a pointer to the vulkan device
+int sveGetDevice (VkDevice *pDevice);
+
+// set a pointer to the swapchain data
+int sveGetSwapchain (SveSwapchainData *pSwapchainData);
+
 // terminate vulkan instanse and clean it up
-int sveCleanVulkan (void);
+int sveDestroyDevice (void);
 
 #endif

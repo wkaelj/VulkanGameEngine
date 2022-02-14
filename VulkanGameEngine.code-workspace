@@ -7,7 +7,8 @@
 	"settings": {
 		"files.associations": {
 			"debug.h": "c",
-			"fileutils.h": "c"
+			"fileutils.h": "c",
+			"sve_pipeline.h": "c"
 		}
 	}
 }

@@ -107,8 +107,6 @@ int createLogicalDevice (void);
 int createSwapchain (void);
 // function to create the image views
 int createImageViews (void);
-// function to create render pass
-int createRenderPass (void);
 // check if questionedDevice supports the swapchain
 SwapChainSupportDetails querySwapChainSupport (VkPhysicalDevice questionedDevice);
 // choose desired or best swap chain mode
@@ -166,11 +164,6 @@ int sveCreateDevice (SveDeviceCreateInfo *initInfo) {
         debug_log ("Failed to create swapchain.");
         return EXIT_FAILURE;
     }
-    // create render pass
-    if (createRenderPass () != EXIT_SUCCESS) {
-        debug_log ("Failed to create render pass.");
-        return EXIT_FAILURE;
-    }
 
     return EXIT_SUCCESS;
 }
@@ -222,13 +215,11 @@ int sveGetWindowSize (uint32_t *pWidth, uint32_t *pHeight) {
     return EXIT_SUCCESS;
 }
 
-int sveGetDevice (VkDevice *pDevice) {
-
-    if (device == VK_NULL_HANDLE) return EXIT_FAILURE;
-
-    if (pDevice == NULL) pDevice = malloc (sizeof (VkDevice));
-
-    *pDevice = device;
+int sveGetDevice (VkDevice *vulkanDevice) {
+    assert (&device != NULL);
+    vulkanDevice = &device;
+    assert (vulkanDevice != NULL);
+    assert (vulkanDevice == &device);
 
     return EXIT_SUCCESS;
 }
@@ -439,6 +430,7 @@ int createLogicalDevice (void) {
     uint32_t queueFamilies[QUEUE_COUNT] = {QUEUE_NAMES}; // queue indices
     VkDeviceQueueCreateInfo queueCreateInfos[queueCount]; // queue create infos
 
+    #warning fixme same queue
     for (uint32_t i = 0; i < queueCount; i++) {
         VkDeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -534,10 +526,13 @@ int createSwapchain (void) {
         return EXIT_FAILURE;
     }
 
+    assert (swapchain.swapchain != NULL);
+
     // resize and create swapchainImageCount variable
     vkGetSwapchainImagesKHR (device, swapchain.swapchain, &swapchain.imageCount, NULL);
     swapchain.images = malloc (sizeof (VkImage) * swapchain.imageCount);
     vkGetSwapchainImagesKHR (device, swapchain.swapchain, &imageCount, &swapchain.images);
+
 
     // set swapchain variables
     swapchain.imageExtent = surfaceExtent;
@@ -692,6 +687,7 @@ SwapChainSupportDetails querySwapChainSupport (VkPhysicalDevice questionedDevice
     assert (details.formatCount > 0);
     details.formats = malloc (sizeof (VkSurfaceFormatKHR) * details.formatCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR (questionedDevice, windowSurface, &details.formatCount, details.formats);
+    assert (details.formats != NULL);
 
     if (details.formatCount == 0) { details.formats = NULL; }
 
@@ -700,7 +696,7 @@ SwapChainSupportDetails querySwapChainSupport (VkPhysicalDevice questionedDevice
     assert (details.presentModeCount > 0);
     details.presentModes = malloc (sizeof (VkSurfaceFormatKHR) * details.presentModeCount);
     vkGetPhysicalDeviceSurfacePresentModesKHR (questionedDevice, windowSurface, &details.presentModeCount, details.presentModes);
-
+    assert (details.presentModes != NULL);
 
     return details;
 }
@@ -771,7 +767,6 @@ QueueFamilyIndices findDeviceQueue (VkPhysicalDevice questionedDevice) {
             if (deviceQueueProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 indices.graphicsFamily = i;
                 indices.foundGraphicsFamily = true;
-                debug_log ("Graphics queue = %i", i); // DEBUG
 
             }
         }
@@ -785,14 +780,11 @@ QueueFamilyIndices findDeviceQueue (VkPhysicalDevice questionedDevice) {
                 assert (presentationSupport);
                 indices.foundPresentFamily = presentationSupport;
                 indices.presentFamily = i;
-                debug_log ("Present queue = %i", i); // DEBUG
-
             }
         }
 
         // check if all queues found
         if (indices.foundPresentFamily && indices.foundGraphicsFamily) {
-            debug_log ("Leaving Loop");
             break;
         }
     }

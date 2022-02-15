@@ -45,7 +45,7 @@ int mainLoopTest (void) {
 	}
 
 	// fix my garbage
-	sveDestroyDevice ();
 	sveCleanGraphicsPipeline ();
+	sveDestroyDevice ();
 	return EXIT_SUCCESS;
 }

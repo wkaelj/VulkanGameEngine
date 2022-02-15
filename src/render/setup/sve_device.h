@@ -52,7 +52,7 @@ int sveUpdateWindow (void);
 int sveGetWindowSize (uint32_t *pWidth, uint32_t *pHeight);
 
 // set a pointer to the vulkan device
-int sveGetDevice (VkDevice *pDevice);
+int sveGetDevice (VkDevice *vulkanDevice);
 
 // set a pointer to the swapchain data
 int sveGetSwapchain (SveSwapchainData *pSwapchainData);

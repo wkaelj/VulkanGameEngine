@@ -92,6 +92,7 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
 
     vars.sveDevice = NULL;
     sveGetDevice (vars.sveDevice);
+    assert (vars.sveDevice != NULL);
 
     if (loadShaderModules (vars.sveDevice, initInfo->shaderLoaderInfo) != EXIT_SUCCESS) return EXIT_FAILURE;
 
@@ -248,6 +249,7 @@ int createRenderPass (void) {
 
     SveSwapchainData *swapchain = NULL;
     sveGetSwapchain (swapchain);
+    assert (swapchain != NULL);
 
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = swapchain->imageFormat;

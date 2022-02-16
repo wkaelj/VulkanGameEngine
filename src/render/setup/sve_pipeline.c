@@ -10,7 +10,7 @@
 
 // struct to hold data to create shaders
 typedef struct {
-    uint32_t *pCode; // pointer to glsl code
+    unsigned char *pCode; // pointer to glsl code
     size_t codeSize; // size of pCode
     char *fileName; // name of the file for shader code
     char *shaderName; // name of shader
@@ -150,7 +150,7 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     #undef pipelineInfo
 
     debug_log ("Created pipeline data");
-    // sveCreateGraphicsPipeline (false, NULL); // initialize default graphics pipeline
+    sveCreateGraphicsPipeline (false, NULL); // initialize default graphics pipeline
     
     return EXIT_SUCCESS;
 }

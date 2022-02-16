@@ -2,15 +2,11 @@
 #define INIT_VK
 // set of functions to create and configure a vulkan instance
 
-#include <stdbool.h>
+#include <sve_header.h>
 #include <vulkan/vulkan.h>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <stdlib.h>
-#include <string.h>
-#include "../../debug/debug.h"
-#include "../../utilities/fileutils.h"
-#include <assert.h>
+#include <utilities/fileutils.h>
 
 
 

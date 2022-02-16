@@ -1,7 +1,7 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#include <stdlib.h>
+#include <sve_header.h>
 
 #define DISABLE_DEBUG_FUNC
 

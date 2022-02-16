@@ -1,5 +1,8 @@
-#include "sve_pipeline.h"
+// function to create and manage graphics pipelines over the lifetime of the program
+// automatically creates and destroys pipleines (soon)
 
+#include "sve_pipeline.h"
+#include <string.h> // FIXME tmp
 
 //
 // Struct definitions
@@ -25,9 +28,9 @@ typedef struct {
 // used to store configuration structures that to not change often, during program runtime
 typedef struct {
     VkGraphicsPipelineCreateInfo *defaultPipelineConfig;
-    VkPipelineLayout *pipelineLayout;
-    VkRenderPass *renderPass;
-    VkDevice *sveDevice;
+    VkPipelineLayout pipelineLayout;
+    VkRenderPass renderPass;
+    VkDevice sveDevice;
 } SvePiplineVariables;
 
 //
@@ -47,7 +50,7 @@ VkGraphicsPipelineCreateInfo customGraphicsPipelineCreateInfo = {};
 //
 
 // function to load shader modules, by reading a configuration file
-int loadShaderModules (VkDevice *vulkanDevice, SveShaderModuleLoaderInfo *loaderInfo);
+int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderInfo);
 
 // function to destroy shader modules after use
 int destroyShaderModules (SveShaderInfo *pShaderInfo);
@@ -75,7 +78,7 @@ int sveCreateGraphicsPipeline (bool isCustomConfig, SvePiplineConfigInfo *pCusto
     }
 
     // create graphics pipeline
-    if (vkCreateGraphicsPipelines (*vars.sveDevice, NULL, 1, pipelineCreateInfo, NULL, &pipeline) != EXIT_SUCCESS) {
+    if (vkCreateGraphicsPipelines (vars.sveDevice, NULL, 1, pipelineCreateInfo, NULL, &pipeline) != EXIT_SUCCESS) {
         debug_log ("Failed to create graphics pipeline");
         return EXIT_FAILURE;
     }
@@ -91,7 +94,7 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     sveDefaultPipelineConfig (&createInfo);
 
     vars.sveDevice = NULL;
-    sveGetDevice (vars.sveDevice);
+    sveGetDevice (&vars.sveDevice);
     assert (vars.sveDevice != NULL);
 
     if (loadShaderModules (vars.sveDevice, initInfo->shaderLoaderInfo) != EXIT_SUCCESS) return EXIT_FAILURE;
@@ -101,6 +104,7 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
 
     // populate default config info
     #define pipelineInfo vars.defaultPipelineConfig // I hate typing
+    pipelineInfo = malloc (sizeof (VkGraphicsPipelineCreateInfo));
 
     // shader stages
     pipelineInfo->sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -123,7 +127,7 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     layoutCreateInfo.pushConstantRangeCount = 0;
     layoutCreateInfo.pPushConstantRanges = NULL;
 
-    if (vkCreatePipelineLayout (*vars.sveDevice, &layoutCreateInfo, NULL, vars.pipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout (vars.sveDevice, &layoutCreateInfo, NULL, &vars.pipelineLayout) != VK_SUCCESS) {
         debug_log ("Failed to create graphics pipeline layout");
         return EXIT_FAILURE;
     }
@@ -138,10 +142,12 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     pipelineInfo->pDepthStencilState = &createInfo.depthStencilInfo;
     pipelineInfo->pColorBlendState = &createInfo.colorBlendInfo;
 
-    pipelineInfo->layout = *vars.pipelineLayout;
-    pipelineInfo->renderPass = *vars.renderPass;
+    pipelineInfo->layout = vars.pipelineLayout;
+    pipelineInfo->renderPass = vars.renderPass;
 
     #undef pipelineInfo
+
+    debug_log ("Created pipeline");
     
     return EXIT_SUCCESS;
 }
@@ -149,10 +155,10 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
 int sveCleanGraphicsPipeline (void) {
 
     // destroy all piplines
-    vkDestroyPipeline (*vars.sveDevice, pipeline, NULL);
+    vkDestroyPipeline (vars.sveDevice, pipeline, NULL);
 
     // destroy pipeline layout
-    vkDestroyPipelineLayout (*vars.sveDevice, *vars.pipelineLayout, NULL);
+    vkDestroyPipelineLayout (vars.sveDevice, vars.pipelineLayout, NULL);
 }
 
 //
@@ -247,12 +253,11 @@ int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo) {
 // create render pass
 int createRenderPass (void) {
 
-    SveSwapchainData *swapchain = NULL;
-    sveGetSwapchain (swapchain);
-    assert (swapchain != NULL);
+    SveSwapchainData swapchain = {};
+    sveGetSwapchain (&swapchain);
 
     VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = swapchain->imageFormat;
+    colorAttachment.format = swapchain.imageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -281,7 +286,7 @@ int createRenderPass (void) {
     createInfo.subpassCount = 1;
     createInfo.pSubpasses = &subpass;
 
-    if (vkCreateRenderPass (*vars.sveDevice, &createInfo, NULL, vars.renderPass) != VK_SUCCESS) {
+    if (vkCreateRenderPass (vars.sveDevice, &createInfo, NULL, &vars.renderPass) != VK_SUCCESS) {
         debug_log ("Failed to create render pass");
         return EXIT_FAILURE;
     }
@@ -292,7 +297,7 @@ int createRenderPass (void) {
 
 // function to load shader modules
 // load shader function reads list of shaders from SHADERLIST_FILEPATH, and then loads all of the shaders in to thModulee array
-int loadShaderModules (VkDevice *vulkanDevice, SveShaderModuleLoaderInfo *loaderInfo) {
+int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderInfo) {
 
     // read config file
     uint32_t shaderCount; // variable not to mess up shaderModule count
@@ -354,7 +359,7 @@ int loadShaderModules (VkDevice *vulkanDevice, SveShaderModuleLoaderInfo *loader
         shaderModuleCreateInfo.pCode = shaderModuleInfo[i].pCode; // file binary read by readFileBinary
 
         // create shader module, if failes throw error and exit failure
-        if (vkCreateShaderModule (*vulkanDevice, &shaderModuleCreateInfo, NULL, &shaderModuleInfo[i].shaderModule) != VK_SUCCESS) {
+        if (vkCreateShaderModule (vulkanDevice, &shaderModuleCreateInfo, NULL, &shaderModuleInfo[i].shaderModule) != VK_SUCCESS) {
             debug_log ("Failed to create shader module for shader file '%s'", shaderConfigs[i]);
             return EXIT_FAILURE;
         }

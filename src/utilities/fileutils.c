@@ -1,8 +1,6 @@
 #include "fileutils.h"
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <assert.h>
 
 int readFileBinary (char *filePath, void *pOut, size_t *pFileSize) {
 

@@ -1,10 +1,9 @@
 #ifndef SVE_PIPLINE
 #define SVE_PIPLINE
 
+#include <sve_header.h>
 #include <vulkan/vulkan.h>
-#include <stdlib.h>
-#include "../../debug/debug.h"
-#include "../../utilities/fileutils.h"
+#include <utilities/fileutils.h>
 #include "sve_device.h"
 
 typedef struct {

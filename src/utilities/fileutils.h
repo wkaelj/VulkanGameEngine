@@ -1,7 +1,7 @@
 #ifndef FILE_UTILITIES
 #define FILE_UTILITIES
 
-#include "../debug/debug.h"
+#include <sve_header.h>
 
 // reads a file as binary, stores it in void pointer
 int readFileBinary (char *filePath, void *pOut, size_t *pFileSize);

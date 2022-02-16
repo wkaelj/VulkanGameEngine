@@ -1,6 +1,7 @@
 // initvk implementation file
 
 #include "sve_device.h"
+#include <string.h> // FIXME tmp
 
 //
 // Magic Number Definitions
@@ -182,6 +183,7 @@ int sveDestroyDevice (void) {
 
     vkDestroyRenderPass (device, renderPass, NULL);
 
+    // FIXME segfault
     // destroy swapchain image views
     for (int i = 0; i < swapchain.imageCount; i++) {
         vkDestroyImageView(device, swapchain.imageViews[i], NULL);
@@ -217,9 +219,9 @@ int sveGetWindowSize (uint32_t *pWidth, uint32_t *pHeight) {
 
 int sveGetDevice (VkDevice *vulkanDevice) {
     assert (&device != NULL);
-    vulkanDevice = &device;
+    *vulkanDevice = device;
     assert (vulkanDevice != NULL);
-    assert (vulkanDevice == &device);
+    assert (*vulkanDevice == device);
 
     return EXIT_SUCCESS;
 }
@@ -227,7 +229,7 @@ int sveGetDevice (VkDevice *vulkanDevice) {
 int sveGetSwapchain (SveSwapchainData *pSwapchainData) {
 
     if (swapchain.swapchain == NULL) return EXIT_FAILURE;
-    pSwapchainData = &swapchain;
+    *pSwapchainData = swapchain;
 
     return EXIT_SUCCESS;
 }

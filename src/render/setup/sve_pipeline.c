@@ -67,20 +67,22 @@ int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo);
 
 int sveCreateGraphicsPipeline (bool isCustomConfig, SvePiplineConfigInfo *pCustomConfig) {
         
-    VkGraphicsPipelineCreateInfo *pipelineCreateInfo;
+    VkGraphicsPipelineCreateInfo *pipelineCreateInfo = malloc (sizeof (VkGraphicsPipelineCreateInfo));
 
     // check if custom config, otherwise use default
     if (isCustomConfig) {
         debug_log ("NO CUSTOM >:(");
-        pipelineCreateInfo = vars.defaultPipelineConfig;
+        pipelineCreateInfo[0] = *vars.defaultPipelineConfig;
     } else {
-        pipelineCreateInfo = vars.defaultPipelineConfig;
+        pipelineCreateInfo[0] = *vars.defaultPipelineConfig;
     }
 
     // create graphics pipeline
     if (vkCreateGraphicsPipelines (vars.sveDevice, NULL, 1, pipelineCreateInfo, NULL, &pipeline) != EXIT_SUCCESS) {
         debug_log ("Failed to create graphics pipeline");
         return EXIT_FAILURE;
+    } else {
+        debug_log ("Created graphics pipeline!!");
     }
 
     return EXIT_SUCCESS;
@@ -147,7 +149,8 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
 
     #undef pipelineInfo
 
-    debug_log ("Created pipeline");
+    debug_log ("Created pipeline data");
+    // sveCreateGraphicsPipeline (false, NULL); // initialize default graphics pipeline
     
     return EXIT_SUCCESS;
 }

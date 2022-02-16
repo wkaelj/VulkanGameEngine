@@ -56,6 +56,7 @@ endif()
 
 include_directories(external)
 include_directories(src/utilities)
+include_directories(src)
 
 # If TINYOBJ_PATH not specified in .env.cmake, try fetching from git repo
 if (NOT TINYOBJ_PATH)

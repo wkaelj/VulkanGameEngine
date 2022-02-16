@@ -2,25 +2,29 @@
 
 #include <stdio.h>
 
-int readFileBinary (char *filePath, void *pOut, size_t *pFileSize) {
+int readFileBinary (char *filePath, unsigned char** pOut, size_t *pFileSize) {
 
-    // open file
+    //open file
     FILE *file = fopen (filePath, "rb");
     size_t fileSizePool = 0; // declare here to avaid constant initializatoin
+    unsigned char* buffer;
 
     // check if file opened
     if (file == NULL) { debug_log ("FILEUTILS: Could not open file: %s", filePath); return EXIT_FAILURE; }
     fseek (file, 0l, SEEK_END); // find end of files
     fileSizePool = ftell (file); // read bit at end of file aka size
+    rewind(file);                // jump back to the beginning of the file
 
     // read file if more then 0 bytes
     if (fileSizePool == 0) { debug_log ("FILEUTILS: File has size 0: %s", filePath); return EXIT_FAILURE; }
-    pOut = malloc (fileSizePool); // gice pOut mem same as size of file
-    fread (pOut, sizeof (pOut), ftell (file), file);
+    buffer = malloc (fileSizePool); // gice pOut mem same as size of file
+    fread(buffer, fileSizePool, 1, file); // Read in the entire file
 
     // cleanup and return success
     fclose (file);
     *pFileSize = fileSizePool;
+    *pOut = buffer;
+
     return EXIT_SUCCESS;
 }
 
@@ -36,7 +40,7 @@ int readFileStringArray (char *filePath, char **ppCharacterOut,  uint32_t *pArra
         return EXIT_FAILURE;
     }
     assert (file != NULL);
-    
+
 
     // read number of linefeeds in file
     char bufferChar; // char buffer (awesome comment)

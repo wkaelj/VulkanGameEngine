@@ -338,7 +338,7 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
         assert (shaderModuleInfo[i].fileName != NULL);
 
         // read files
-        if (readFileBinary (shaderModuleInfo[i].fileName, shaderModuleInfo[i].pCode, &shaderModuleInfo[i].codeSize) != EXIT_SUCCESS) {
+        if (readFileBinary (shaderModuleInfo[i].fileName, &shaderModuleInfo[i].pCode, &shaderModuleInfo[i].codeSize) != EXIT_SUCCESS) {
             debug_log ("Failed to read shader from file '%s'", shaderConfigs[i]);
             return EXIT_FAILURE;
         }

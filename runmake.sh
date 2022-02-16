@@ -1,3 +1,3 @@
 #! /bin/bash
 
-make -C build/
+make -C build/ VERBOSE=1

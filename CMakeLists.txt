@@ -56,7 +56,6 @@ endif()
 
 include_directories(external)
 include_directories(src/utilities)
-include_directories(src/sve_header.h)
 
 # If TINYOBJ_PATH not specified in .env.cmake, try fetching from git repo
 if (NOT TINYOBJ_PATH)
@@ -68,10 +67,7 @@ file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
-#set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 17)
-#target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
-set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 17)
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/build")
 

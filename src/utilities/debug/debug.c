@@ -2,43 +2,43 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <time.h>
 
 
-int debug_log (const char *format, ...) {
+#define BUFFER_LENGTH 512
+char bufferString1[BUFFER_LENGTH]; // bufferstring preallocated for stack storage
+char bufferString2[BUFFER_LENGTH]; // I need 2
+int debug_log (DebugSeverity severity, const char *format, ...) {
 
-    #define RESET_ARGS va_end(args); va_start(args, format); // macro to reset args to start
-
-    #ifdef DISABLE_DEBUG_FUNC // run simplified debug code for testing purposes
-    va_list args;
-    va_start (args, format);
-    vprintf (format, args);
-    putchar ('\n');
-
-    return EXIT_SUCCESS;
-    // FIXME corrupts memory
-    #else
-
-    // this code can be disabled to test other parts of the program. It corrputs memory
-
-    // variable decleration
-    char *output;
-    size_t stringSize;
     va_list args;
     va_start (args, format);
 
-    // get size of string and allocate mem for output
-    stringSize = vsnprintf (NULL, 0, format, args);
-    output = malloc (stringSize);
+    // messege severity prefixes
+    const char *messegeSeverity[] = {
+        "[FATAL]: ",
+        "[ERROR]: ",
+        "[INFO]: ",
+        "[DEBUG]: "
+    };
 
-    RESET_ARGS;
+    // get time
+    time_t t;
+    time(&t);
 
-    // print format string to output variable
-    vsprintf (output, format, args);
+    // pupulate bufferstring 1 with messege and args and all that
+    vsnprintf (bufferString1, BUFFER_LENGTH, format, args);
 
-    // print output string to stdout
-    printf ("%s\n", output);
-    free (output);
-    return EXIT_SUCCESS;
+    snprintf (
+        bufferString2,
+        BUFFER_LENGTH,
+        "%s %s%s",
+        ctime (&t),
+        messegeSeverity[severity],
+        bufferString1
+    );
 
-    #endif
+    // TODO fancy output
+
+    va_end (args);
+    
 }

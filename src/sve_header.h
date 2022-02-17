@@ -2,13 +2,17 @@
 #define SIMPLE_VULKAN_ENGINE
 
 // file includes
-#include <utilities/debug/debug.h> // debugging
+#include "utilities/debug/debug.h" // debugging
 
 // std lib
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <assert.h>
+#include <assert.h> // tmp asserts
+
+// global definitions
+#define SUCCESS 0
+#define FAILURE 1
 
 
 #endif // header guard

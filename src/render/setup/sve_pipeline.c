@@ -28,8 +28,8 @@ typedef struct {
 // used to store configuration structures that to not change often, during program runtime
 typedef struct {
     VkGraphicsPipelineCreateInfo *defaultPipelineConfig;
-    VkPipelineLayout pipelineLayout;
     VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
     VkDevice sveDevice;
 } SvePiplineVariables;
 
@@ -121,19 +121,6 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     vertexInfo.pVertexAttributeDescriptions = NULL;
     vertexInfo.pVertexBindingDescriptions = NULL;
 
-    // FIXME tmp pipeline layout, move to a proper place
-    VkPipelineLayoutCreateInfo layoutCreateInfo = {};
-    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layoutCreateInfo.setLayoutCount = 0;
-    layoutCreateInfo.pSetLayouts = NULL;
-    layoutCreateInfo.pushConstantRangeCount = 0;
-    layoutCreateInfo.pPushConstantRanges = NULL;
-
-    if (vkCreatePipelineLayout (vars.sveDevice, &layoutCreateInfo, NULL, &vars.pipelineLayout) != VK_SUCCESS) {
-        debug_log ("Failed to create graphics pipeline layout");
-        return EXIT_FAILURE;
-    }
-
     // populate default configuration values
     pipelineInfo->pVertexInputState = &vertexInfo;
     pipelineInfo->pInputAssemblyState = &createInfo.inputAssemblyInfo;
@@ -144,8 +131,12 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     pipelineInfo->pDepthStencilState = &createInfo.depthStencilInfo;
     pipelineInfo->pColorBlendState = &createInfo.colorBlendInfo;
 
-    pipelineInfo->layout = vars.pipelineLayout;
-    pipelineInfo->renderPass = vars.renderPass;
+    pipelineInfo->layout = createInfo.pipelineLayout;
+    pipelineInfo->renderPass = createInfo.renderPass;
+    pipelineInfo->subpass = createInfo.subpass;
+
+    pipelineInfo->basePipelineIndex = -1;
+    pipelineInfo->basePipelineHandle = NULL;
 
     #undef pipelineInfo
 
@@ -161,7 +152,10 @@ int sveCleanGraphicsPipeline (void) {
     vkDestroyPipeline (vars.sveDevice, pipeline, NULL);
 
     // destroy pipeline layout
-    vkDestroyPipelineLayout (vars.sveDevice, vars.pipelineLayout, NULL);
+    vkDestroyPipelineLayout (vars.sveDevice, , NULL);
+
+    // free variables
+    free (vars.defaultPipelineConfig);
 }
 
 //
@@ -249,6 +243,8 @@ int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo) {
     configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE;
     // configInfo.depthStencilInfo.front = {};  // Optional
     // configInfo.depthStencilInfo.back = {};   // Optional
+
+    *pConfigInfo = configInfo;
 
     return EXIT_SUCCESS;
 }
@@ -359,7 +355,7 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
 
         // define creatinfo properties
         shaderModuleCreateInfo.codeSize = shaderModuleInfo[i].codeSize; // filesize I read by readFileBinary
-        shaderModuleCreateInfo.pCode = shaderModuleInfo[i].pCode; // file binary read by readFileBinary
+        shaderModuleCreateInfo.pCode = (const uint32_t *)shaderModuleInfo[i].pCode; // file binary read by readFileBinary
 
         // create shader module, if failes throw error and exit failure
         if (vkCreateShaderModule (vulkanDevice, &shaderModuleCreateInfo, NULL, &shaderModuleInfo[i].shaderModule) != VK_SUCCESS) {

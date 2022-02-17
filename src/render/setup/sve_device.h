@@ -24,7 +24,7 @@ typedef struct {
 // struct to store vulkan swapchain data
 typedef struct {
     VkSwapchainKHR swapchain; // window swapchain
-    VkImage images; // swapchain images, gets rallocated in createSwapchain()
+    VkImage *images; // swapchain images, gets rallocated in createSwapchain()
     uint32_t imageCount; // variable to store number of swapchain images (both view and normal)
     VkImageView *imageViews; // swapchain image views
     VkFormat imageFormat;

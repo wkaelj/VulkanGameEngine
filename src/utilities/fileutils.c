@@ -10,13 +10,13 @@ int readFileBinary (char *filePath, unsigned char** pOut, size_t *pFileSize) {
     unsigned char* buffer;
 
     // check if file opened
-    if (file == NULL) { debug_log ("FILEUTILS: Could not open file: %s", filePath); return EXIT_FAILURE; }
+    if (file == NULL) { LOG_ERROR("FILEUTILS: Could not open file: %s", filePath); return EXIT_FAILURE; }
     fseek (file, 0l, SEEK_END); // find end of files
     fileSizePool = ftell (file); // read bit at end of file aka size
     rewind(file);                // jump back to the beginning of the file
 
     // read file if more then 0 bytes
-    if (fileSizePool == 0) { debug_log ("FILEUTILS: File has size 0: %s", filePath); return EXIT_FAILURE; }
+    if (fileSizePool == 0) { LOG_ERROR("FILEUTILS: File has size 0: %s", filePath); return EXIT_FAILURE; }
     buffer = malloc (fileSizePool); // gice pOut mem same as size of file
     fread(buffer, fileSizePool, 1, file); // Read in the entire file
 
@@ -36,7 +36,7 @@ int readFileStringArray (char *filePath, char **ppCharacterOut,  uint32_t *pArra
     // function variables
     FILE *file = fopen (filePath, "r");
     if (file == NULL) {
-        debug_log ("Could not open file %s", filePath);
+        LOG_ERROR("Could not open file %s", filePath);
         return EXIT_FAILURE;
     }
     assert (file != NULL);
@@ -83,7 +83,7 @@ int readFileStringArray (char *filePath, char **ppCharacterOut,  uint32_t *pArra
         // read full line of size lineLength
         ppCharacterOut[i] = malloc (lineLength * sizeof (char)); // allocate memory to string to store line variable
         if (fgets (ppCharacterOut[i], lineLength, file) == NULL) {
-            debug_log ("Failed to read line %i from file %s", i, filePath);
+            LOG_ERROR("Failed to read line %i from file %s", i, filePath);
             return EXIT_FAILURE;
         }
 

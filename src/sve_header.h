@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h> // tmp asserts
+#include <string.h> // not writing custom strings
 
 // global definitions
 #define SUCCESS 0

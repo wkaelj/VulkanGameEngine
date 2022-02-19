@@ -1,7 +1,7 @@
 // initvk implementation file
 
 #include "sve_device.h"
-#include <string.h> // FIXME tmp
+// #include <string.h> // included in sve_header
 
 //
 // Magic Number Definitions
@@ -139,30 +139,30 @@ int sveCreateDevice (SveDeviceCreateInfo *initInfo) {
 
     // create a glfw window
     if (createWindow (initInfo) != EXIT_SUCCESS) {
-        debug_log ("Failed to create window.");
+        LOG_ERROR("Failed to create window.");
         return EXIT_FAILURE;
     }
     if (createInstance () != EXIT_SUCCESS) {
-        debug_log ("Failed to create vulkan instance.");
+        LOG_ERROR("Failed to create vulkan instance.");
         return EXIT_FAILURE;
     }
     // create window surface
     if (createWindowSurface () != EXIT_SUCCESS) {
-        debug_log ("Failed to create GLFW window surface");
+        LOG_ERROR("Failed to create GLFW window surface");
     }
     // select gpu
     if (selectPhysicalDevice () != EXIT_SUCCESS) {
-        debug_log ("Failed to select a physical device.");
+        LOG_ERROR("Failed to select a physical device.");
         return EXIT_FAILURE;
     }
     // create a device
     if (createLogicalDevice () != EXIT_SUCCESS) {
-        debug_log ("Failed to create logical device.");
+        LOG_ERROR("Failed to create logical device.");
         return EXIT_FAILURE;
     }
     // create swapchain
     if (createSwapchain () != EXIT_SUCCESS) {
-        debug_log ("Failed to create swapchain.");
+        LOG_ERROR("Failed to create swapchain.");
         return EXIT_FAILURE;
     }
 
@@ -197,6 +197,8 @@ int sveDestroyDevice (void) {
     }
 
     vkDestroySurfaceKHR (instance, windowSurface, NULL);
+
+    DestroyDebugUtilsMessengerEXT(instance, &debugMessenger, NULL);
 
     vkDestroyInstance (instance, NULL);
 
@@ -279,14 +281,14 @@ int checkValidationLayerSupport () {
         //iterate through available extensions
         for (uint32_t x = 0; x < layerCount; x++) {
             if (strcmp (requiredLayerNames[i], availableLayers[x].layerName) == EXIT_SUCCESS) {
-                debug_log ("Found layer: %s", availableLayers[x].layerName);
+                LOG_DEBUG("Found layer: %s", availableLayers[x].layerName);
                 found = true;
                 break;
             }
         }
 
         if (found == false) {
-            debug_log("Unavailable valiation layer: %s", requiredLayerNames[i]);
+            LOG_DEBUG("Unavailable valiation layer: %s", requiredLayerNames[i]);
             return EXIT_FAILURE;
         }
     }
@@ -301,7 +303,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     void* pUserData) {
     
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-    debug_log("Validation Layer: %s", pCallbackData->pMessage);
+    LOG_VALIDATION("Validation Layer: %s", pCallbackData->pMessage);
 
     return VK_FALSE;
 }
@@ -310,7 +312,7 @@ int createInstance (void) {
     
     // check if validation support is available
     if (enableValidationLayers && checkValidationLayerSupport() != EXIT_SUCCESS) {
-        debug_log("validation layers requested, but not available!");
+        LOG_DEBUG("validation layers requested, but not available!");
         enableValidationLayers = false;
     }
 
@@ -359,7 +361,7 @@ int createInstance (void) {
     }
 
     if (vkCreateInstance (&createInfo, NULL, &instance) != VK_SUCCESS) {
-        debug_log ("Failed to create vulkan instance");
+        LOG_ERROR("Failed to create vulkan instance");
         return EXIT_FAILURE;
     }
 
@@ -377,7 +379,7 @@ int selectPhysicalDevice (void) {
     vkEnumeratePhysicalDevices (instance, &availableDeviceCount, NULL);
     //throw error if there are no devices
     if (availableDeviceCount == 0) {
-        debug_log ("No GPU detected.");
+        LOG_FATAL("No GPU detected.");
         return EXIT_FAILURE;
     }
 
@@ -399,7 +401,7 @@ int selectPhysicalDevice (void) {
 
     // check if there are no suitable GPU
     if (suitableDeviceCount == 0) {
-        debug_log ("No suitable GPU detected.");
+        LOG_FATAL("No suitable GPU detected.");
         return EXIT_FAILURE;
     }
 
@@ -524,7 +526,7 @@ int createSwapchain (void) {
 
     // create swapchain
     if (vkCreateSwapchainKHR (device, &createInfo, NULL, &swapchain.swapchain) != VK_SUCCESS) {
-        debug_log ("Failed to create swapchain");
+        LOG_ERROR("Failed to create swapchain");
         return EXIT_FAILURE;
     }
 
@@ -533,7 +535,7 @@ int createSwapchain (void) {
     // resize and create swapchainImageCount variable
     vkGetSwapchainImagesKHR (device, swapchain.swapchain, &swapchain.imageCount, NULL);
     swapchain.images = malloc (sizeof (VkImage) * swapchain.imageCount);
-    vkGetSwapchainImagesKHR (device, swapchain.swapchain, &imageCount, &swapchain.images);
+    vkGetSwapchainImagesKHR (device, swapchain.swapchain, &imageCount, swapchain.images);
 
 
     // set swapchain variables
@@ -569,9 +571,9 @@ int createImageViews (void) {
     // create new image for each swapchain image
     for (uint32_t i = 0; i < swapchain.imageCount; i++) {
 
-        imageViewCreateInfo.image = swapchain.images;
+        imageViewCreateInfo.image = swapchain.images[i];
         if (vkCreateImageView (device, &imageViewCreateInfo, NULL, &swapchain.imageViews[i]) != VK_SUCCESS) {
-            debug_log ("Failed to create VkImageView index #%i", i);
+           LOG_ERROR("Failed to create VkImageView index #%i", i);
             return EXIT_FAILURE;
         }
 
@@ -616,11 +618,11 @@ uint16_t isDeviceSuitable (VkPhysicalDevice questionedDevice) {
 
     // DEBUG
     if (!supportsQueues)
-        debug_log ("Lacks queue support");
+        LOG_ERROR("Lacks queue support");
     if (!hasExtensionSupport)
-        debug_log ("Lacks extension support");
+        LOG_ERROR("Lacks extension support");
     if (!supportsSwapchain)
-        debug_log ("Lacks swapchain support");
+        LOG_ERROR("Lacks swapchain support");
 
     // check if device supports all functionality
     if (hasExtensionSupport && supportsQueues && supportsSwapchain) {
@@ -629,7 +631,7 @@ uint16_t isDeviceSuitable (VkPhysicalDevice questionedDevice) {
 
     // score device based on type of gpu
     if (score == 0) {
-        debug_log ("Device '%s' has score %i", deviceProperties.deviceName, score);
+        LOG_INFO("Device '%s' has score %i", deviceProperties.deviceName, score);
         return 0;
 
     } else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
@@ -669,7 +671,7 @@ int checkDeviceExtensionSupport (VkPhysicalDevice questionedDevice) {
         }
         // "handle" missing layer
         if (!found) {
-            debug_log ("GPU does not support required extension: %s", requiredDeviceExtensionNames[i]);
+            LOG_FATAL("GPU does not support required extension: %s", requiredDeviceExtensionNames[i]);
             return EXIT_FAILURE;
         }
     }
@@ -776,7 +778,7 @@ QueueFamilyIndices findDeviceQueue (VkPhysicalDevice questionedDevice) {
         // check for presentationSupport if not already found
         if (!indices.foundPresentFamily) {
             if (vkGetPhysicalDeviceSurfaceSupportKHR (questionedDevice, i, windowSurface, &presentationSupport) != VK_SUCCESS)
-                debug_log ("Failed find presentation support!");
+                LOG_INFO("Failed find presentation support!");
             
             if (presentationSupport) {
                 assert (presentationSupport);
@@ -802,7 +804,7 @@ VkDebugUtilsMessengerEXT* pDebugMessenger) {
     if (func != NULL) {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     } else {
-        debug_log ("Failed to load 'vkCreateDebugUtilsMessengerEXT', is NULL");
+        LOG_VALIDATION("Failed to load 'vkCreateDebugUtilsMessengerEXT', is NULL");
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
@@ -817,6 +819,6 @@ void DestroyDebugUtilsMessengerEXT ( VkInstance instance,
         if (func != NULL) {
             func (instance, debugMessenger, pAllocator);
         } else {
-            debug_log ("Failed to load 'vkDestroyDebugUtilsMessengerEXT'");
+            LOG_VALIDATION("Failed to load 'vkDestroyDebugUtilsMessengerEXT'");
         }
 }

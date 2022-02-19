@@ -8,6 +8,8 @@
 #define BUFFER_LENGTH 512
 char bufferString1[BUFFER_LENGTH]; // bufferstring preallocated for stack storage
 char bufferString2[BUFFER_LENGTH]; // I need 2
+
+// debug_log function
 int debug_log (DebugSeverity severity, const char *format, ...) {
 
     va_list args;
@@ -17,6 +19,7 @@ int debug_log (DebugSeverity severity, const char *format, ...) {
     const char *messegeSeverity[] = {
         "[FATAL]: ",
         "[ERROR]: ",
+	"[VALIDATION]: ",
         "[INFO]: ",
         "[DEBUG]: "
     };
@@ -31,14 +34,16 @@ int debug_log (DebugSeverity severity, const char *format, ...) {
     snprintf (
         bufferString2,
         BUFFER_LENGTH,
-        "%s %s%s",
+        ">>> %s %s%s\n",
         ctime (&t),
         messegeSeverity[severity],
         bufferString1
     );
 
     // TODO fancy output
-
+    printf ("%s", bufferString2);
     va_end (args);
+
+    return SUCCESS;
     
 }

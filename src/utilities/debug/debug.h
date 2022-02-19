@@ -14,39 +14,47 @@
 // should enable 
 #define ENABLE_FATAL 1
 #define ENABLE_ERROR 1
+#define ENABLE_VALIDATION
 #define ENABLE_INFO 1
 #define ENABLE_DEBUG 1
 
 typedef enum {
     DEBUG_FATAL = 0,
     DEBUG_ERROR = 1,
-    DEBUG_INFO = 2,
-    DEBUG_DEBUG = 3,
+    DEBUG_VALIDATION = 2,
+    DEBUG_INFO = 3,
+    DEBUG_DEBUG = 4,
 } DebugSeverity;
 
 // check if debug messeges are enabled, otherwise disable the corrospining messege
 #ifdef ENABLE_FATAL
-#define LOG_FATAL (messege, ...) debug_log (DEBUG_FATAL, messege, __VA_ARGS__)
+#define LOG_FATAL(messege, ...) debug_log (DEBUG_FATAL, messege, ##__VA_ARGS__)
 #else
-#define LOG_FATAL (messege, ...)
+#define LOG_FATAL(messege, ...)
 #endif
 
 #ifdef ENABLE_ERROR
-#define LOG_ERROR (messege, ...) debug_log (DEBUG_ERROR, messege, __VA_ARGS__)
+#define LOG_ERROR(messege, ...) debug_log (DEBUG_ERROR, messege, ##__VA_ARGS__)
 #else
-#define LOG_ERROR (messege, ...)
+#define LOG_ERROR(messege, ...)
+#endif
+
+#ifdef ENABLE_VALIDATION
+#define LOG_VALIDATION(messege, ...) debug_log (DEBUG_VALIDATION, messege, ##__VA_ARGS__)
+#else
+#define LOG_VALIDATION(messege, ...)
 #endif
 
 #ifdef ENABLE_ERROR
-#define LOG_INFO (messege, ...) debug_log (DEBUG_INFO, messege, __VA_ARGS__)
+#define LOG_INFO(messege, ...) debug_log (DEBUG_INFO, messege, ##__VA_ARGS__)
 #else
-#define LOG_INFO (messege, ...)
+#define LOG_INFO(messege, ...)
 #endif
 
 #ifdef ENABLE_DEBUG
-#define LOG_DEBUG (messege, ...) debug_log (DEBUG_DEBUG, messege, __VA_ARGS__)
+#define LOG_DEBUG(messege, ...) debug_log (DEBUG_DEBUG, messege, ##__VA_ARGS__)
 #else
-#define LOG_DEBUG (messege, ...)
+#define LOG_DEBUG(messege, ...)
 #endif
 
 // log debugging messege

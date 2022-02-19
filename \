@@ -1,0 +1,147 @@
+#include "linked_list.h"
+
+struct t_ListNode
+{
+    ListNode *next;
+    ListNode *back;
+    void *value;
+    size_t size;
+};
+
+struct t_LinkedList
+{
+    ListNode *head;
+    ListNode *tail;
+
+    size_t length;
+    
+    // function pointers
+    t_get get;
+    t_getNode getNode;
+    t_append append;
+    t_prepend prepend;
+    t_push push;
+    t_pop pop;
+};
+
+
+// newList implementation
+LinkedList newList (void)
+{
+    LinkedList out;
+
+    // set function pointers
+    out.get = &list_get;
+    out.getNode = &list_getNode;
+    out.append = &list_append;
+    out.prepend = &list_prepend;
+    out.push = &list_push;
+    out.pop = &list_pop;
+
+    // set head and tail to NULL
+    out.head = NULL;
+    out.tail = NULL;
+
+    out.length = 0;
+
+    return out;
+}
+
+// get implementation
+void *list_get (LinkedList *list, size_t index, ListReturns *state)
+{
+    ListNode *node;
+
+    // access node at index
+    node = list->head;
+    // start counting at 1 bc head is 0 also dont count longer then list
+    for (size_t i = 1; i < index && i < list->length; i++)
+    {
+        // check if node it tail and index is still true
+        if (node == list->tail && i < index)
+        {
+            *state = LIST_INDEX_OVERFLOW;
+            return NULL;
+        }
+
+        node = node->next; // set node to the next node
+    }
+
+    // return
+    *state = LIST_SUCCESS;
+    return node->value;
+}
+
+// get implementation
+ListNode *list_getNode (LinkedList *list, size_t index, ListReturns *state)
+{
+    ListNode *node;
+
+    // access node at index
+    node = list->head;
+    // start counting at 1 bc head is 0 also dont count longer then list
+    for (size_t i = 1; i < index && i < list->length; i++)
+    {
+        // check if node it tail and index is still true
+        if (node == list->tail && i < index)
+        {
+            *state = LIST_INDEX_OVERFLOW;
+            return NULL;
+        }
+
+        node = node->next; // set node to the next node
+    }
+
+    // return
+    *state = LIST_SUCCESS;
+    return node;
+}
+
+
+// append implementation
+ListReturns list_append (LinkedList *list, void *value)
+{
+    
+    // create the new node
+    ListNode *newNode = malloc (sizeof (ListNode));
+
+    newNode->value = value;
+    newNode->size = sizeof (typeof (*value)); // experiment
+
+    // assumes head is set to NULL if there is only no value?
+    if (list->head == NULL)
+    {
+        list->head = newNode; // put new node in list
+        list->length++; // make length longer cuz length is longer
+
+        list->tail = newNode; // tail too ig?
+
+        return LIST_SUCCESS;
+    }
+
+    list->tail->next = newNode; // set current tail next to node
+    newNode->back = list->tail; // set node back to current tail
+    list->tail = newNode; // set list tail to node
+
+    return LIST_SUCCESS;
+}
+
+// prepend implementation
+ListReturns list_prepend (LinkedList *list, void *value)
+{
+    
+    // create new node
+    ListNode *newNode = malloc (sizeof (ListNode));
+    newNode->value = value;
+    newNode->size = sizeof (typeof (*value)); // experiment
+
+    // check if list is empty
+    if (list->head == NULL)
+    {
+        list->head = newNode;
+        list->tail = newNode;
+    }
+
+    
+    return LIST_SUCCESS;
+}

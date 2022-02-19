@@ -2,7 +2,6 @@
 // automatically creates and destroys pipleines (soon)
 
 #include "sve_pipeline.h"
-#include <string.h> // FIXME tmp
 
 //
 // Struct definitions
@@ -71,21 +70,21 @@ int sveCreateGraphicsPipeline (bool isCustomConfig, SvePiplineConfigInfo *pCusto
 
     // check if custom config, otherwise use default
     if (isCustomConfig) {
-        debug_log ("NO CUSTOM >:(");
+       LOG_ERROR("NO CUSTOM >:(");
         pipelineCreateInfo[0] = *vars.defaultPipelineConfig;
     } else {
         pipelineCreateInfo[0] = *vars.defaultPipelineConfig;
     }
 
     // create graphics pipeline
-    if (vkCreateGraphicsPipelines (vars.sveDevice, NULL, 1, pipelineCreateInfo, NULL, &pipeline) != EXIT_SUCCESS) {
-        debug_log ("Failed to create graphics pipeline");
-        return EXIT_FAILURE;
+    if (vkCreateGraphicsPipelines (vars.sveDevice, NULL, 1, pipelineCreateInfo, NULL, &pipeline) != SUCCESS) {
+        LOG_ERROR("Failed to create graphics pipeline");
+        return FAILURE;
     } else {
-        debug_log ("Created graphics pipeline!!");
+        LOG_DEBUG("Created graphics pipeline!!");
     }
 
-    return EXIT_SUCCESS;
+    return SUCCESS;
 }
 
 // function to initialize the graphics pipline, and setup all
@@ -99,7 +98,7 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     sveGetDevice (&vars.sveDevice);
     assert (vars.sveDevice != NULL);
 
-    if (loadShaderModules (vars.sveDevice, initInfo->shaderLoaderInfo) != EXIT_SUCCESS) return EXIT_FAILURE;
+    if (loadShaderModules (vars.sveDevice, initInfo->shaderLoaderInfo) != SUCCESS) return FAILURE;
 
     // call init functions
     createRenderPass (); // create render pass
@@ -140,10 +139,10 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
 
     #undef pipelineInfo
 
-    debug_log ("Created pipeline data");
+    LOG_DEBUG("Created pipeline data");
     sveCreateGraphicsPipeline (false, NULL); // initialize default graphics pipeline
     
-    return EXIT_SUCCESS;
+    return SUCCESS;
 }
 
 int sveCleanGraphicsPipeline (void) {
@@ -152,10 +151,12 @@ int sveCleanGraphicsPipeline (void) {
     vkDestroyPipeline (vars.sveDevice, pipeline, NULL);
 
     // destroy pipeline layout
-    vkDestroyPipelineLayout (vars.sveDevice, , NULL);
+    vkDestroyPipelineLayout (vars.sveDevice, vars.pipelineLayout, NULL);
 
     // free variables
     free (vars.defaultPipelineConfig);
+    
+    return SUCCESS;
 }
 
 //
@@ -246,7 +247,7 @@ int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo) {
 
     *pConfigInfo = configInfo;
 
-    return EXIT_SUCCESS;
+    return SUCCESS;
 }
 
 // create render pass
@@ -286,11 +287,11 @@ int createRenderPass (void) {
     createInfo.pSubpasses = &subpass;
 
     if (vkCreateRenderPass (vars.sveDevice, &createInfo, NULL, &vars.renderPass) != VK_SUCCESS) {
-        debug_log ("Failed to create render pass");
-        return EXIT_FAILURE;
+        LOG_ERROR("Failed to create render pass");
+        return FAILURE;
     }
 
-    return EXIT_SUCCESS;
+    return SUCCESS;
 }
 
 
@@ -300,9 +301,9 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
 
     // read config file
     uint32_t shaderCount; // variable not to mess up shaderModule count
-    if (readFileStringArray (loaderInfo->configFilePath, NULL, &shaderCount) != EXIT_SUCCESS) return EXIT_FAILURE;
+    if (readFileStringArray (loaderInfo->configFilePath, NULL, &shaderCount) != SUCCESS) return FAILURE;
     char *shaderConfigs[shaderCount];
-    if (readFileStringArray (loaderInfo->configFilePath, shaderConfigs, &shaderCount) != EXIT_SUCCESS) return EXIT_FAILURE;
+    if (readFileStringArray (loaderInfo->configFilePath, shaderConfigs, &shaderCount) != SUCCESS) return FAILURE;
 
     // shader module create info
     ShaderCreateInfoContainer shaderModuleInfo[shaderCount];
@@ -329,7 +330,7 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
         } else if (strcmp (shaderParams[1], "FRAGMENT") == 0) {
             shaderModuleInfo[i].shaderType = VK_SHADER_STAGE_FRAGMENT_BIT;
         } else {
-            debug_log ("Failed to read shader type of shader '%s', unrecognised param '%s'", shaderModuleInfo[i].shaderName, shaderParams[1]);
+            LOG_ERROR("Failed to read shader type of shader '%s', unrecognised param '%s'", shaderModuleInfo[i].shaderName, shaderParams[1]);
         }
 
         // debug
@@ -337,9 +338,9 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
         assert (shaderModuleInfo[i].fileName != NULL);
 
         // read files
-        if (readFileBinary (shaderModuleInfo[i].fileName, &shaderModuleInfo[i].pCode, &shaderModuleInfo[i].codeSize) != EXIT_SUCCESS) {
-            debug_log ("Failed to read shader from file '%s'", shaderConfigs[i]);
-            return EXIT_FAILURE;
+        if (readFileBinary (shaderModuleInfo[i].fileName, &shaderModuleInfo[i].pCode, &shaderModuleInfo[i].codeSize) != SUCCESS) {
+            LOG_ERROR("Failed to read shader from file '%s'", shaderConfigs[i]);
+            return FAILURE;
         }
     }
 
@@ -359,8 +360,8 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
 
         // create shader module, if failes throw error and exit failure
         if (vkCreateShaderModule (vulkanDevice, &shaderModuleCreateInfo, NULL, &shaderModuleInfo[i].shaderModule) != VK_SUCCESS) {
-            debug_log ("Failed to create shader module for shader file '%s'", shaderConfigs[i]);
-            return EXIT_FAILURE;
+            LOG_ERROR("Failed to create shader module for shader file '%s'", shaderConfigs[i]);
+            return FAILURE;
         }
 
         // store shader module
@@ -378,7 +379,7 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
         shaderInfo.createInfos[i] = shaderModuleCreateInfo;
     }
 
-    return EXIT_SUCCESS;
+    return SUCCESS;
 }
 
 // destroy shader module
@@ -392,5 +393,5 @@ int destroyShaderModules (SveShaderInfo *pShaderInfo) {
         vkDestroyShaderModule (device, pShaderInfo->shaders[i], NULL);
     }
 
-    return EXIT_SUCCESS;
+    return SUCCESS;
 }

@@ -55,7 +55,6 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
 int destroyShaderModules (SveShaderInfo *pShaderInfo);
 
 // function to create render pass
-int createRenderPass (void);
 
 // function to populate SvePiplineConfigInfo struct with the default config info
 int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo);
@@ -100,9 +99,6 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
 
     if (loadShaderModules (vars.sveDevice, initInfo->shaderLoaderInfo) != SUCCESS) return FAILURE;
 
-    // call init functions
-    createRenderPass (); // create render pass
-
     // populate default config info
     #define pipelineInfo vars.defaultPipelineConfig // I hate typing
     pipelineInfo = malloc (sizeof (VkGraphicsPipelineCreateInfo));
@@ -129,6 +125,10 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     pipelineInfo->pDepthStencilState = &createInfo.depthStencilInfo;
     pipelineInfo->pDepthStencilState = &createInfo.depthStencilInfo;
     pipelineInfo->pColorBlendState = &createInfo.colorBlendInfo;
+
+    // special stuff
+    assert (createInfo.pipelineLayout != NULL);
+    assert (createInfo.renderPass != NULL);
 
     pipelineInfo->layout = createInfo.pipelineLayout;
     pipelineInfo->renderPass = createInfo.renderPass;
@@ -249,51 +249,6 @@ int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo) {
 
     return SUCCESS;
 }
-
-// create render pass
-int createRenderPass (void) {
-
-    SveSwapchainData swapchain = {};
-    sveGetSwapchain (&swapchain);
-
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = swapchain.imageFormat;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // TODO implement stencil
-    
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    // attachment references
-    VkAttachmentReference colorAttachmentRef = {};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
-
-    // subpass
-    VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-
-    VkRenderPassCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    createInfo.attachmentCount = 1;
-    createInfo.pAttachments = &colorAttachment;
-    createInfo.subpassCount = 1;
-    createInfo.pSubpasses = &subpass;
-
-    if (vkCreateRenderPass (vars.sveDevice, &createInfo, NULL, &vars.renderPass) != VK_SUCCESS) {
-        LOG_ERROR("Failed to create render pass");
-        return FAILURE;
-    }
-
-    return SUCCESS;
-}
-
 
 // function to load shader modules
 // load shader function reads list of shaders from SHADERLIST_FILEPATH, and then loads all of the shaders in to thModulee array

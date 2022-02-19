@@ -58,6 +58,9 @@ struct t_LinkedList
 // initialize new linkedlist (LinkedList x = newList ();)
 LinkedList newList (void);
 
+// initialize a new list node
+ListNode *newNode (void);
+
 // read a value from the list. Returns null on failure
 void *list_get (LinkedList *list, size_t index, ListReturns *state);
 

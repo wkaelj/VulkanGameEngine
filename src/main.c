@@ -10,13 +10,11 @@ int main () {
 
     LinkedList list = newList ();
 
-    list.append (&list, "Hello World");
+    list.append (&list, "Hello");
+    list.push (&list, list.length, "Pancakes");
+    list.append (&list, "Pie");
 
-    list.append (&list, "Turkey");
-
-    list.push (&list, 1, "Test");
-
-    LOG_INFO("%s%s", list.get(&list, 0, NULL), list.get(&list, 1, NULL));
+    LOG_INFO("%s %s", list.get(&list, 0, NULL), list.get(&list, 1, NULL));
 
 }
 

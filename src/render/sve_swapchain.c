@@ -103,18 +103,21 @@ VkSwapchainKHR createSwapchain (SwapChainSupportDetails supportDetails, VkSwapch
     VkExtent2D swapExtent = chooseSwapExtent (&swapchainDetails->capabilties);
 
     // image count
-    uint32_t swapImageCount = swapchainDetails->capabilties.maxImageCount + 1;
+    uint32_t swapImageCount = swapchainDetails->capabilties.minImageCount + 1;
     if (swapchainDetails->capabilties.maxImageCount > 0 && swapImageCount > swapchainDetails->capabilties.maxImageCount) {
         swapImageCount = swapchainDetails->capabilties.maxImageCount;
     }
 
     VkSwapchainCreateInfoKHR swapCreateInfo = {};
+    swapCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapCreateInfo.minImageCount = swapImageCount;
     swapCreateInfo.imageFormat = surfaceFormat.format;
     swapCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
     swapCreateInfo.imageExtent = swapExtent;
     swapCreateInfo.imageArrayLayers = 1;
     swapCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    swapCreateInfo.surface = sveGetWindowSurface ();
 
     // queue families
     QueueFamilyIndices indices = *sveGetQueueFamilies (NULL); 
@@ -142,7 +145,7 @@ VkSwapchainKHR createSwapchain (SwapChainSupportDetails supportDetails, VkSwapch
         
         LOG_ERROR("Failed to create swapchain");
         return VK_NULL_HANDLE;
-    }
+    } else LOG_DEBUG ("Created Swapchain");
 
     #undef swapchainDetails
     return out;

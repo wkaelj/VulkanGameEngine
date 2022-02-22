@@ -93,8 +93,7 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
 
     sveDefaultPipelineConfig (&createInfo);
 
-    vars.sveDevice = NULL;
-    sveGetDevice (&vars.sveDevice);
+    vars.sveDevice = sveGetDevice ();
     assert (vars.sveDevice != NULL);
 
     if (loadShaderModules (vars.sveDevice, initInfo->shaderLoaderInfo) != SUCCESS) return FAILURE;
@@ -115,6 +114,13 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     vertexInfo.vertexBindingDescriptionCount = 0;
     vertexInfo.pVertexAttributeDescriptions = NULL;
     vertexInfo.pVertexBindingDescriptions = NULL;
+
+    VkPipelineViewportStateCreateInfo viewportInfo = {};
+    viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportInfo.viewportCount = 1;
+    viewportInfo.pViewports = &createInfo.viewport;
+    viewportInfo.scissorCount = 1;
+    viewportInfo.pScissors = &createInfo.scissor;
 
     // populate default configuration values
     pipelineInfo->pVertexInputState = &vertexInfo;
@@ -168,7 +174,7 @@ int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo) {
 
     SvePiplineConfigInfo configInfo = {};
 
-    uint32_t width, height;
+    int32_t width, height;
     sveGetWindowSize (&width, &height);
 
     configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -187,11 +193,7 @@ int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo) {
     configInfo.scissor.extent.width = width;
     configInfo.scissor.extent.height = height;
 
-    configInfo.viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    configInfo.viewportInfo.viewportCount = 1;
-    configInfo.viewportInfo.pViewports = &configInfo.viewport;
-    configInfo.viewportInfo.scissorCount = 1;
-    configInfo.viewportInfo.pScissors = &configInfo.scissor;
+    
 
     configInfo.rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     configInfo.rasterizationInfo.depthClampEnable = VK_FALSE;
@@ -340,8 +342,7 @@ int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderI
 // destroy shader module
 int destroyShaderModules (SveShaderInfo *pShaderInfo) {
 
-    VkDevice device;
-    sveGetDevice (&device);
+    VkDevice device = sveGetDevice ();
 
     // destroy shader modules
     for (uint32_t i = 0; i < pShaderInfo->shaderCount; i++) {

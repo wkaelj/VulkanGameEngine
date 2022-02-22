@@ -58,6 +58,9 @@ struct t_LinkedList
 // initialize new linkedlist (LinkedList x = newList ();)
 LinkedList newList (void);
 
+// delete a linked list
+ListReturns deleteList (LinkedList *list);
+
 // initialize a new list node
 ListNode *newNode (void);
 

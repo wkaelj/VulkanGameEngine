@@ -183,11 +183,14 @@ ListReturns list_pop (LinkedList *list, size_t index)
         return state;
     }
     // knit closed space around node
+    if (node == list->head && node->next != NULL) list->head = node->next;
+    if (node == list->tail && node->back != NULL) list->tail = node->back;
     if (node->back != NULL) node->back->next = node->next;
     if (node->next != NULL) node->next->back = node->back;
 
-    list->length--;
+    list->length--; // make list shorter
 
+    if (node->value != NULL) free (node->value);
     free (node); // better not copy any of the nodes.
     return LIST_SUCCESS;
 }

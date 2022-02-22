@@ -1,6 +1,8 @@
 // temp main function
-#include "render/setup/sve_device.h"
-#include "render/setup/sve_pipeline.h"
+#include "render/sve_device.h"
+#include "render/sve_pipeline.h"
+#include "render/sve_swapchain.h"
+#include "render/sve_window.h"
 
 #include <utilities/datastructures/linked_list.h>
 
@@ -8,14 +10,9 @@ int mainLoopTest (void);
 
 int main () {
 
-    LinkedList list = newList ();
+    mainLoopTest ();
 
-    list.append (&list, "Hello");
-    list.push (&list, list.length, "Pancakes");
-    list.append (&list, "Pie");
-
-    LOG_INFO("%s %s", list.get(&list, 0, NULL), list.get(&list, 1, NULL));
-
+    return SUCCESS;
 }
 
 // temp mainloop functions
@@ -40,15 +37,14 @@ int mainLoopTest (void) {
     piplineInfo.shaderLoaderInfo = &loaderInfo;
     // initialize vulkan
     if (sveCreateDevice (&deviceInfo) != EXIT_SUCCESS) return EXIT_FAILURE;
-    if (sveInitGraphicsPipeline (&piplineInfo) != EXIT_SUCCESS) return EXIT_FAILURE;
+    if (sveInitSwapchain () != SUCCESS) return FAILURE;
     
     // very important loop
-    while (sveUpdateWindow () == EXIT_SUCCESS) {
+    while (sveUpdateWindow () == SUCCESS) {
 
     }
 
-    // fix my garbage
-    sveCleanGraphicsPipeline ();
+    
     sveDestroyDevice ();
     return EXIT_SUCCESS;
 }

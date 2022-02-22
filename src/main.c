@@ -29,7 +29,7 @@ int mainLoopTest (void) {
     deviceInfo.windowName = "Hello World";
     deviceInfo.windowWidth = 800;
     deviceInfo.windowHeight = 600;
-    deviceInfo.windowFullscreen = false;
+    deviceInfo.windowFullscreen = true;
     deviceInfo.windowResizable = false;
     deviceInfo.activateValidation = true;
 

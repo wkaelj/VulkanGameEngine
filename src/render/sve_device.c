@@ -98,7 +98,7 @@ int sveCreateDevice (SveDeviceCreateInfo *initInfo) {
     preferIntegratedGPU = initInfo->preferIntegratedGPU;
 
     // run init functions
-    if (sveCreateWindow (initInfo->windowWidth, initInfo->windowHeight, initInfo->windowName, initInfo->windowResizable) != SUCCESS) {
+    if (sveCreateWindow (initInfo->windowWidth, initInfo->windowHeight, initInfo->windowName, initInfo->windowResizable, initInfo->windowFullscreen) != SUCCESS) {
         LOG_ERROR("Failed to create window.");
         return FAILURE;
     }

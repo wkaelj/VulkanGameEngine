@@ -5,7 +5,7 @@
 #include<GLFW/glfw3.h>
 
 // create a new window
-int sveCreateWindow (uint32_t w, uint32_t h, char *name, bool resizable);
+int sveCreateWindow (uint32_t w, uint32_t h, char *name, bool resizable, bool fullscreen);
 
 // get window dimensions
 int sveGetWindowSize (int32_t *w, int32_t *h);
@@ -20,6 +20,9 @@ int sveDestroyWindow (void);
 int sveDestroyWindowSurface (VkInstance instance);
 
 int sveUpdateWindow (void);
+
+// enable/disable window fullscreen
+int sveToggleWindowFullscreen (bool fullscreen);
 
 int sveGetRequiredWindowExtensions (char ***ppExtensionsString, uint32_t *pExtensionsCount);
 // get window surface

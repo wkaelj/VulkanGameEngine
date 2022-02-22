@@ -190,8 +190,6 @@ int sveDestroyDevice (void) {
         DestroyDebugUtilsMessengerEXT  (instance, &debugMessenger, NULL);
     }
 
-    vkDestroySurfaceKHR (instance, sveGetWindowSurface (), NULL);
-
     DestroyDebugUtilsMessengerEXT(instance, &debugMessenger, NULL);
 
     sveDestroyWindowSurface (instance);

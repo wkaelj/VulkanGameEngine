@@ -44,7 +44,7 @@ int mainLoopTest (void) {
 
     }
 
-    
+    sveDestroySwapchain ();
     sveDestroyDevice ();
     return EXIT_SUCCESS;
 }

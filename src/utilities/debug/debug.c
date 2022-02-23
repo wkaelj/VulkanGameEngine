@@ -4,7 +4,7 @@
 #include <string.h>
 #include <time.h>
 
-
+// debug.h implementation
 #define BUFFER_LENGTH 512
 char bufferString1[BUFFER_LENGTH]; // bufferstring preallocated for stack storage
 char bufferString2[BUFFER_LENGTH]; // I need 2

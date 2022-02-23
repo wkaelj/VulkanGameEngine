@@ -5,7 +5,7 @@
 
 
 /**
- * @brief Functions to output and log debug messeges.
+ * @brief Functions to output and log debug messeges. Use the debug macros pls not the function itself
  * @author Kael Johnston
  * @date Feb 17 2022
  */

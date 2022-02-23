@@ -95,7 +95,9 @@ int sveToggleWindowFullscreen (bool fullscreen) {
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
     
-    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "My Title", monitor, NULL);
+    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "My Title", monitor, NULL);\
+
+    glfwSetWindowOpacity (window, 1.0f);
 
     return SUCCESS;
 }

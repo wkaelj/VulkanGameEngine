@@ -49,15 +49,15 @@ VkGraphicsPipelineCreateInfo customGraphicsPipelineCreateInfo = {};
 //
 
 // function to load shader modules, by reading a configuration file
-int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderInfo);
+static int loadShaderModules (VkDevice vulkanDevice, SveShaderModuleLoaderInfo *loaderInfo);
 
 // function to destroy shader modules after use
-int destroyShaderModules (SveShaderInfo *pShaderInfo);
+static int destroyShaderModules (SveShaderInfo *pShaderInfo);
 
 // function to create render pass
 
 // function to populate SvePiplineConfigInfo struct with the default config info
-int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo);
+static int sveDefaultPipelineConfig (SvePiplineConfigInfo *pConfigInfo);
 
 //
 // Public Functions
@@ -103,7 +103,6 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     pipelineInfo = malloc (sizeof (VkGraphicsPipelineCreateInfo));
 
     // shader stages
-    pipelineInfo->sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo->stageCount = shaderInfo.shaderCount;
     pipelineInfo->pStages = shaderInfo.createInfos;
 
@@ -125,12 +124,19 @@ int sveInitGraphicsPipeline (SvePipelineCreateInfo *initInfo) {
     // populate default configuration values
     pipelineInfo->pVertexInputState = &vertexInfo;
     pipelineInfo->pInputAssemblyState = &createInfo.inputAssemblyInfo;
-    pipelineInfo->pViewportState = &createInfo.viewportInfo;
+    pipelineInfo->pViewportState = &viewportInfo;
     pipelineInfo->pRasterizationState = &createInfo.rasterizationInfo;
     pipelineInfo->pMultisampleState = &createInfo.multisampleInfo;
     pipelineInfo->pDepthStencilState = &createInfo.depthStencilInfo;
     pipelineInfo->pDepthStencilState = &createInfo.depthStencilInfo;
     pipelineInfo->pColorBlendState = &createInfo.colorBlendInfo;
+
+    // FIXME tmp
+    VkPipelineLayout layout;
+    VkPipelineLayoutCreateInfo layoutInfo = {};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    if (vkCreatePipelineLayout (sveGetDevice (), &layoutInfo, NULL, &layout) != VK_SUCCESS) return FAILURE;
+    createInfo.pipelineLayout = layout;
 
     // special stuff
     assert (createInfo.pipelineLayout != NULL);

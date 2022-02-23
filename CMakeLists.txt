@@ -33,26 +33,26 @@ else()
 endif()
 
 
-# 2. Set GLFW_PATH in .env.cmake to target specific glfw
-if (DEFINED GLFW_PATH)
-  message(STATUS "Using GLFW path specified in .env")
-  set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
-  if (MSVC)
-    set(GLFW_LIB "${GLFW_PATH}/lib-vc2019") # 2.1 Update lib-vc2019 to use same version as your visual studio
-  elseif (CMAKE_GENERATOR STREQUAL "MinGW Makefiles")
-    message(STATUS "USING MINGW")
-    set(GLFW_LIB "${GLFW_PATH}/lib-mingw-w64") # 2.1 make sure matches glfw mingw subdirectory
-  endif()
-else()
-  find_package(glfw3 3.3 REQUIRED)
-  set(GLFW_LIB glfw)
-  message(STATUS "Found GLFW")
-endif()
-if (NOT GLFW_LIB)
-	message(FATAL_ERROR "Could not find glfw library!")
-else()
-	message(STATUS "Using glfw lib at: ${GLFW_LIB}")
-endif()
+## 2. Set GLFW_PATH in .env.cmake to target specific glfw
+#if (DEFINED GLFW_PATH)
+#  message(STATUS "Using GLFW path specified in .env")
+#  set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
+#  if (MSVC)
+#    set(GLFW_LIB "${GLFW_PATH}/lib-vc2019") # 2.1 Update lib-vc2019 to use same version as your visual studio
+#  elseif (CMAKE_GENERATOR STREQUAL "MinGW Makefiles")
+#    message(STATUS "USING MINGW")
+#    set(GLFW_LIB "${GLFW_PATH}/lib-mingw-w64") # 2.1 make sure matches glfw mingw subdirectory
+#  endif()
+#else()
+#  find_package(glfw3 3.3 REQUIRED)
+#  set(GLFW_LIB glfw)
+#  message(STATUS "Found GLFW")
+#endif()
+#if (NOT GLFW_LIB)
+#	message(FATAL_ERROR "Could not find glfw library!")
+#else()
+#	message(STATUS "Using glfw lib at: ${GLFW_LIB}")
+#endif()
 
 include_directories(external)
 include_directories(src/)
@@ -70,6 +70,10 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/build")
+
+target_include_directories (${PROJECT_NAME} PUBLIC extern/glfw)
+add_subdirectory (extern/glfw)
+target_link_libraries (glfw)
 
 if (WIN32)
   message(STATUS "CREATING BUILD FOR WINDOWS")

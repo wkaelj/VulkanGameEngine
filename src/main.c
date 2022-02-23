@@ -36,14 +36,16 @@ int mainLoopTest (void) {
     SvePipelineCreateInfo piplineInfo = {};
     piplineInfo.shaderLoaderInfo = &loaderInfo;
     // initialize vulkan
-    if (sveCreateDevice (&deviceInfo) != EXIT_SUCCESS) return EXIT_FAILURE;
+    if (sveCreateDevice (&deviceInfo) != SUCCESS) return FAILURE;
     if (sveInitSwapchain () != SUCCESS) return FAILURE;
+    // if (sveInitGraphicsPipeline (&piplineInfo) != SUCCESS) return FAILURE;
     
     // very important loop
     while (sveUpdateWindow () == SUCCESS) {
 
     }
 
+    // sveCleanGraphicsPipeline ();
     sveDestroySwapchain ();
     sveDestroyDevice ();
     return EXIT_SUCCESS;
